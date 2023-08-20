@@ -100,7 +100,7 @@ class Config {
     }
 
     [void] ShowConfig() {
-        Write-Host "Configuracion actual:" -ForegroundColor Blue
+        Write-Host "Configuracion actual:" -ForegroundColor Yellow
         foreach ($key in $this.config.Keys)
         {
             $value        = $this.config[$key]

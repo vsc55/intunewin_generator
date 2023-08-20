@@ -40,9 +40,9 @@ function SelectItemList {
 
     do {
         Clear-Host
-        Write-Host (GetAsterisksLine $title) -ForegroundColor DarkBlue
-        Write-Host ("****  {0}  ****" -f $title) -ForegroundColor DarkBlue
-        Write-Host (GetAsterisksLine $title) -ForegroundColor DarkBlue
+        Write-Host (GetAsterisksLine $title) -ForegroundColor Yellow
+        Write-Host ("****  {0}  ****" -f $title) -ForegroundColor Yellow
+        Write-Host (GetAsterisksLine $title) -ForegroundColor Yellow
         Write-Host ""
 
         if ($nCount -eq 0) {
@@ -99,9 +99,9 @@ function Get-ValidInstallCmd {
         if (!(Test-Path -Path $softVerPathFull -PathType Leaf))
         {
             Clear-Host
-            Write-Host "***************************************" -ForegroundColor DarkBlue
-            Write-Host "****  Script/Programa Instalacion  ****" -ForegroundColor DarkBlue
-            Write-Host "***************************************" -ForegroundColor DarkBlue
+            Write-Host "***************************************" -ForegroundColor Yellow
+            Write-Host "****  Script/Programa Instalacion  ****" -ForegroundColor Yellow
+            Write-Host "***************************************" -ForegroundColor Yellow
             Write-Host ""
             Write-Host ("El archivo '{0}' no se encuentra!" -f $softCmdInstall ) -ForegroundColor Red
             Write-Host ""

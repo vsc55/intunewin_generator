@@ -133,7 +133,7 @@ $downloadResult = $downloader.StartDownload()
 if (-not $downloadResult)
 {
     Write-Host ""
-    Write-Host "Puedes descargarlo manualmente de: $intuneWinAppUtilUrlGitHub" -ForegroundColor Blue
+    Write-Host "Puedes descargarlo manualmente de: $intuneWinAppUtilUrlGitHub" -ForegroundColor Yellow
     Write-Host ""
     exit 1
 }
@@ -252,8 +252,8 @@ Start-Sleep -Seconds 1
 Clear-Host
 Write-Host ""
 Write-Host " Resumen:" -ForegroundColor Yellow
-Write-Host ("  - Software: {0}" -f $config.GetConfig('softName')) -ForegroundColor Blue
-Write-Host ("  - Version : {0}" -f $config.GetConfig('softVerName')) -ForegroundColor Blue
+Write-Host ("  - Software: {0}" -f $config.GetConfig('softName')) -ForegroundColor Yellow
+Write-Host ("  - Version : {0}" -f $config.GetConfig('softVerName')) -ForegroundColor Yellow
 Write-Host ""
 Write-Host ("  - Source: {0}" -f $config.GetConfig('softVerPath')) -ForegroundColor Cyan
 Write-Host ("  - Script: {0}" -f $config.GetConfig('softCmdInstall')) -ForegroundColor Cyan
