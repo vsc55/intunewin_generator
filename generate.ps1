@@ -65,7 +65,10 @@ $config.NewConfig("softPathOut", "") | Out-Null
 $config.NewConfig("softVerName", "") | Out-Null
 $config.NewConfig("softVerPath", "") | Out-Null
 $config.NewConfig("softCmdInstall", "install.cmd") | Out-Null
-
+$config.NewConfig("intunewinName", "") | Out-Null
+$config.NewConfig("intunewinPath", "") | Out-Null
+$config.NewConfig("intunewinNameSoftware", "") | Out-Null
+$config.NewConfig("intunewinPathSoftware", "") | Out-Null
 
 if (Test-Path $configFile -PathType Leaf)
 {
@@ -284,64 +287,27 @@ pause
 
 
 Write-Host ""
-# Clear-Host
-$compileIntuneWin = [intuneWinAppUtil]::new($config.GetConfig('intuneWinAppUtilPath'))
-$compileIntuneWin.outPath    = $config.GetConfig('softPathOut')
-$compileIntuneWin.sourcePath = $config.GetConfig('softVerPath')
-$compileIntuneWin.cmdInstall = $config.GetConfig('softCmdInstall')
-if (-not $compileIntuneWin.CreateIntuneWinFile()) 
+Clear-Host
+$compileIntuneWin                 = [intuneWinAppUtil]::new($config.GetConfig('intuneWinAppUtilPath'))
+$compileIntuneWin.outPath         = $config.GetConfig('softPathOut')
+$compileIntuneWin.sourcePath      = $config.GetConfig('softVerPath')
+$compileIntuneWin.cmdInstall      = $config.GetConfig('softCmdInstall')
+$compileIntuneWin.softwareName    = $config.GetConfig('softName')
+$compileIntuneWin.softwareVersion = $config.GetConfig('softVerName')
+
+$config.SetConfig("intunewinName", $compileIntuneWin.GetNameFileIntuneWin())
+$config.SetConfig("intunewinPath", $compileIntuneWin.GetPathFileIntuneWin())
+$config.SetConfig("intunewinNameSoftware", $compileIntuneWin.GetNameFileIntuneWinSoftware())
+$config.SetConfig("intunewinPathSoftware", $compileIntuneWin.GetPathFileIntuneWinSoftware())
+
+if ($compileIntuneWin.CreateIntuneWinFile()) 
 {
-    exit 1
-}
-Write-Host "Proceso de compilacion completado ok." -ForegroundColor Green
+    Write-Host "Proceso de compilacion completado ok." -ForegroundColor Green
+    Write-Host ""
 
-
-
-
-
-
-
-
-
-
-exit;
-
-
-
-
-
-Write-Host ""
-$intunewinFileName = [System.IO.Path]::GetFileNameWithoutExtension($appCmdInstall) + ".intunewin"
-$intunewinFilePath = Join-Path $outPathFull $intunewinFileName
-
-if (! (Test-Path -Path $intunewinFilePath -PathType Leaf))
-{
-    Write-Host "Error el archivo $intunewinFilePath no se ha creado!"  -ForegroundColor Red
-    Exit 1
-}
-else
-{
-    $intunewinFileNameFixVersion = "{0}_{1}.intunewin" -f $selectedSoft, $selectedVersion
-    $intunewinFilePathFixVersion = Join-Path $outPathFull $intunewinFileNameFixVersion
-
-    if (Test-Path -Path $intunewinFilePathFixVersion -PathType Leaf)
+    if ($compileIntuneWin.RenameIntuneWinFile())
     {
-        $deleteExisting = Read-Host "Ya hay una version anterior del archivo '$intunewinFileNameFixVersion'. Deseas borrarlo la version antigua? (Y/N)"
-        if ($deleteExisting -eq "Y" -or $deleteExisting -eq "y")
-        {
-            Remove-Item -Path $intunewinFilePathFixVersion -Force
-            Write-Host "Version antigua eliminado." -ForegroundColor Green
-        }
-        else
-        {
-            Write-Host "La version antigua de '$intunewinFileNameFixVersion' no se ha eliminado, la ultima compilacion es $intunewinFileName." -ForegroundColor Yellow
-            Invoke-Item -Path $outPathFull
-            exit
-        }
+        Write-Host ("El archivo '{0}' se ha creado correctamente" -f $compileIntuneWin.GetNameFileIntuneWinSoftware()) -ForegroundColor Green
+        Invoke-Item -Path $config.GetConfig('softPathOut')
     }
-    
-    Rename-Item -Path $intunewinFilePath -NewName $intunewinFileNameFixVersion
-    Write-Host "El archivo $intunewinFileNameFixVersion se ha creado correctamente" -ForegroundColor Green
-
-    Invoke-Item -Path $outPathFull
 }

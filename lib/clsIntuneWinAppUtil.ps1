@@ -10,6 +10,9 @@ if (-not (Test-Path Function:\CheckHack) -or (-not (CheckHack)))
 class intuneWinAppUtil {
     [string]$intuneWinAppUtilPath = ""
 
+    [string]$softwareName    = ""
+    [string]$softwareVersion = ""
+
     [bool]$catInclude = $false
     [string]$catPath = ""
 
@@ -23,6 +26,29 @@ class intuneWinAppUtil {
 
     intuneWinAppUtil([string] $intuneWinAppUtilPath) {
         $this.intuneWinAppUtilPath = $intuneWinAppUtilPath
+    }
+
+
+
+    [string] GetNameFileIntuneWinSoftware() {
+        if ([string]::IsNullOrEmpty($this.softwareName) -or [string]::IsNullOrEmpty($this.softwareVersion)) {
+            return $null
+        }
+        return "{0}_{1}.intunewin" -f $this.softwareName, $this.softwareVersion
+    }
+
+    [string]  GetPathFileIntuneWinSoftware() {
+        if ([string]::IsNullOrEmpty($this.GetNameFileIntuneWinSoftware())) {
+            return $null
+        }
+        return (Join-Path $this.outPath $this.GetNameFileIntuneWinSoftware())
+    }
+
+    [bool] isIntuneWinFileSoftwareExist(){
+        if ([string]::IsNullOrEmpty($this.GetPathFileIntuneWinSoftware())) {
+            return $false
+        }
+        return (Test-Path -Path $this.GetPathFileIntuneWinSoftware() -Type Leaf) 
     }
 
 
@@ -142,6 +168,33 @@ class intuneWinAppUtil {
             }
             return $false
         }
+    }
+
+    [bool] RenameIntuneWinFile() {
+        if ($this.isIntuneWinFileExist())
+        {
+            if ($this.isIntuneWinFileSoftwareExist())
+            {
+                $deleteExisting = Read-Host ("Ya hay una version anterior del archivo '{0}'. Deseas borrarlo la version antigua? (Y/N)" -f $this.GetNameFileIntuneWinSoftware())
+                if ($deleteExisting -eq "Y" -or $deleteExisting -eq "y")
+                {
+                    Remove-Item -Path $this.GetPathFileIntuneWinSoftware() -Force
+                    Write-Host "Version antigua eliminado." -ForegroundColor Green
+                }
+                else
+                {
+                    Write-Host ("La version antigua de '{0}' no se ha eliminado, la ultima compilacion es '{1}'." -f $this.GetNameFileIntuneWinSoftware(), $this.GetNameFileIntuneWin()) -ForegroundColor Yellow
+                    return $true
+                }
+            }
+            Rename-Item -Path $this.GetPathFileIntuneWin() -NewName $this.GetNameFileIntuneWinSoftware()
+            return $true
+        }
+        else
+        {
+            Write-Host ("Error el archivo {0} no se ha creado!" -f $this.GetNameFileIntuneWin())  -ForegroundColor Red
+        }
+        return $false
     }
 }
 
