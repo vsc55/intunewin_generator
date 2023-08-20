@@ -1,8 +1,4 @@
-# Cambiar la codificación de caracteres de la consola a UTF-8
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-
-
-# **** INIT - Load libs ****
+﻿# **** INIT - Load libs ****
 $isLoad    = $true;
 $hackCheck = "1984"
 $debug     = $false

@@ -1,4 +1,4 @@
-if (($null -eq $function:CheckHack) -or (-not (CheckHack)))
+﻿if (($null -eq $function:CheckHack) -or (-not (CheckHack)))
 {
     $isLoad = $false
     $scriptName = $MyInvocation.MyCommand.Name
