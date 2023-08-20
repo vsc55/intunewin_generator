@@ -41,7 +41,7 @@ if (-not $isLoad)
 
 
 # Crear Objetos Globales
-$paths = [PathList]::new()
+$paths = [PathItemPool]::new()
 $paths.root = $rootPath
 
 $paths.AddPath("lib", $null, $true) | Out-Null
@@ -311,3 +311,4 @@ if ($compileIntuneWin.CreateIntuneWinFile())
         Invoke-Item -Path $config.GetConfig('softPathOut')
     }
 }
+Write-Host ""

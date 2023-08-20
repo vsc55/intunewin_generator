@@ -6,7 +6,6 @@ if (-not (Test-Path Function:\CheckHack) -or (-not (CheckHack)))
     return
 }
 
-
 class intuneWinAppUtil {
     [string]$intuneWinAppUtilPath = ""
 
@@ -110,49 +109,68 @@ class intuneWinAppUtil {
         try {
             # Clear-Host
             Write-Host "Iniciado proceso de compilacion..."
+            Write-Host ""
             
+
+            # INFO Parametros
+            #
+            # -a : Los archivos de catálogo (.cat) son archivos de firma digital que se utilizan para 
+            # verificar la autenticidad e integridad de los archivos ejecutables.
+            #
+            # -----------------------------------------------------------------------------------------------
+            # Version 1.8.4.0
+            # Sample commands to use the Microsoft Intune App Wrapping Tool for Windows Classic Application:
+            #
+            # IntuneWinAppUtil -v
+            #   This will show the tool version.
+            # IntuneWinAppUtil -h
+            #   This will show usage information for the tool.
+            # IntuneWinAppUtil -c <source_folder> -s <source_setup_file> -o <output_folder> <-a> <catalog_folder> <-q>
+            #   This will generate the .intunewin file from the specified source folder and setup file.
+            #   For MSI setup file, this tool will retrieve required information for Intune.
+            #   If -a is specified, all catalog files in that folder will be bundled into the .intunewin file.
+            #   If -q is specified, it will be in quiet mode. If the output file already exists, it will be overwritten.
+            #   Also if the output folder does not exist, it will be created automatically.
+            # IntuneWinAppUtil
+            #   If no parameter is specified, this tool will guide you to input the required parameters step by step.
+            #
+
             $processArgs = "-c `"{0}`" -s `"{1}`" -o `"{2}`"" -f $this.sourcePath, $this.cmdInstall, $this.outPath
             if ($this.catInclude)
             {
-                # -a : Los archivos de catálogo (.cat) son archivos de firma digital que se utilizan para 
-                # verificar la autenticidad e integridad de los archivos ejecutables.
                 $processArgs += " -a `"{1}`"" -f $this.catPath
             }
 
-            
-            # $ProcessInfo = Start-Process -FilePath $this.intuneWinAppUtilPath -ArgumentList $processArgs -Wait -PassThru
-
-            
             $psi = New-Object System.Diagnostics.ProcessStartInfo
             $psi.FileName = $this.intuneWinAppUtilPath
             $psi.Arguments = $processArgs
             $psi.RedirectStandardOutput = $true
             $psi.RedirectStandardError = $true
-            $psi.RedirectStandardInput = $true
+            # $psi.RedirectStandardInput = $true
             $psi.UseShellExecute = $false
-            $psi.CreateNoWindow = $true
+            # $psi.CreateNoWindow = $true
 
             $process = New-Object System.Diagnostics.Process
             $process.StartInfo = $psi
             $process.Start() | Out-Null
 
-            # $process.StandardInput.WriteLine("Y")
+            while (!$process.HasExited) {
+                while (!$process.StandardOutput.EndOfStream) { $this.WriteHostProcess($process, $false) }
+                while (!$process.StandardError.EndOfStream)  { $this.WriteHostProcess($process, $true) }
+                Start-Sleep -Milliseconds 100
+            }
 
-            $output = $process.StandardOutput.ReadToEnd()
-            $errorOutput = $process.StandardError.ReadToEnd()
+            # Leer los últimos datos después de que el proceso haya terminado
+            while ($process.StandardOutput.Peek() -ge 0) { $this.WriteHostProcess($process, $false) }
+            while ($process.StandardError.Peek() -ge 0)  { $this.WriteHostProcess($process, $true) }
+            Write-Host ""
 
-            $process.WaitForExit()
             $this.errCode     = $process.ExitCode
             $this.errMsg      = $process.StandardError
-
-
-            Write-Host ""
-            Write-Host $output
 
             if ($this.errCode -ne 0)
             {
                 Write-Host ("El proceso se ha completado con un codigo de salida de ({0}). Ocurrio un error personalizado." -f $this.errCode) -ForegroundColor Red
-                Write-Host $errorOutput -ForegroundColor Red
                 return $false
             }
             return $true
@@ -167,6 +185,24 @@ class intuneWinAppUtil {
                 Write-Host ("Detalles del error interno: {0}" -f $_.Exception.InnerException.Message) -ForegroundColor Red
             }
             return $false
+        }
+    }
+
+    [void] WriteHostProcess([System.Diagnostics.Process] $process, $isError = $false) {
+        if ($isError)
+        {
+            $outputLine = $process.StandardError.ReadLine()
+            $color = 'Red'
+        }
+        else
+        {
+            $outputLine = $process.StandardOutput.ReadLine()
+            $color = 'Green'
+        }
+        
+        if ($null -ne $outputLine)
+        {
+            Write-Host $outputLine -ForegroundColor $color
         }
     }
 

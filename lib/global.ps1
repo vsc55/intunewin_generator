@@ -6,17 +6,12 @@ if (-not (Test-Path Function:\CheckHack) -or (-not (CheckHack)))
     return
 }
 
-# https://github.com/EvotecIT/PSWriteColor
-# Import-Module .\PSWriteColor.psd1 -Force
-# Import-Module .\Write-Color.ps1
-
-Import-Module .\clsPathList.ps1
+Import-Module .\clsPathItem.ps1
+Import-Module .\clsPathItemPool.ps1
 Import-Module .\clsConfig.ps1
-# Import-Module .\clsBackgroundJob.ps1
-# Import-Module .\A_Write-Color.ps1
 Import-Module .\clsFileDownloader.ps1
+Import-Module .\clsFileDownloaderPool.ps1
 Import-Module .\clsIntuneWinAppUtil.ps1
-
 
 
 function GetAsterisksLine($text) {
