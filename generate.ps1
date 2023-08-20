@@ -14,8 +14,6 @@ function CheckHack {
     return $true
 }
 
-# Install-Module -Name "PSWriteColor" -Force
-
 $rootPath    = $PSScriptRoot;
 $initLibPath = Join-Path $rootPath "lib"
 if (-not (Test-Path -Path $initLibPath -PathType Container))
@@ -47,10 +45,6 @@ $paths.root = $rootPath
 $paths.AddPath("lib", $null, $true) | Out-Null
 $paths.AddPath("bin", $null, $true) | Out-Null
 $paths.AddPath("software", $null, $true) | Out-Null
-# $paths.ShowPaths()
-
-
-
 
 
 
@@ -74,7 +68,7 @@ if (Test-Path $configFile -PathType Leaf)
 {
     if ($config.LoadConfig($configFile))
     {
-        Write-Host "configuracion cargada exitosamente." -ForegroundColor Green
+        Write-Host "Configuracion cargada exitosamente." -ForegroundColor Green
     }
     else
     {

@@ -1,9 +1,9 @@
-if (-not (Test-Path Function:\CheckHack) -or (-not (CheckHack)))
+if (($null -eq $function:CheckHack) -or (-not (CheckHack)))
 {
     $isLoad = $false
     $scriptName = $MyInvocation.MyCommand.Name
     Write-Host "Error load script ($scriptName)." -ForegroundColor Red
-    return
+    Exit 1
 }
 
 
