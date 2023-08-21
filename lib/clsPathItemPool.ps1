@@ -91,8 +91,9 @@ class PathItemPool {
         # Retorna 'true' si el directorio se eliminó exitosamente de la lista, 'false' si no se encontró.
 
         $pathItem = $this.GetPathItem($nameDir)
-        if ($null -ne $pathItem) {
-            $this.pathItems.Remove($pathItem)
+        if ($null -ne $pathItem)
+        {
+            $this.pathItems = $this.pathItems | Where-Object { $_ -ne $pathItem }
             return $true
         }
         return $false

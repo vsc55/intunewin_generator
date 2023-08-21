@@ -143,162 +143,190 @@ Write-Host ""
 
 
 
-
-if ($debug) {
-    Write-Host ""
-    Write-Host "*** DEBUG ***"
-    $config.ShowConfig()
-    Write-Host "*** DEBUG ***"
-    Write-Host ""
-    pause
-}
-
-
-
-
-$softArgs = @{
-    lNames   = (Get-ChildItem -Path $paths.GetPath('software') -Directory | Sort-Object Name)
-    title    = "Lista de Software"
-    msgEmpty = "No se ha detectado ningun Software."
-    msgSelect = "Seleccione un Software"
-    msgSelectErr = "Algo ha salido mal ya que no se ha seleccionado ningún Software :("
-}
-$tmpSelectedSoftwareName = SelectItemList @softArgs
-if ([string]::IsNullOrEmpty($tmpSelectedSoftwareName))
-{
-    exit 1    
-}
-$config.SetConfig("softName", $tmpSelectedSoftwareName)
-$config.SetConfig("softPath", $paths.GetPathJoin('software',  $tmpSelectedSoftwareName))
-Remove-Variable -Name "tmpSelectedSoftwareName" -Scope Global
-
-$paths.UpdatePath("source", $config.GetConfig("softPath"), $true) | Out-Null
-$paths.UpdatePath("out", $config.GetConfig("softPath"), $true) | Out-Null
-$config.SetConfig("softPathSrc", $paths.GetPath('source'))
-$config.SetConfig("softPathOut", $paths.GetPath('out'))
-
-Write-Host ("Software seleccionado: {0}" -f $config.GetConfig('softName')) -ForegroundColor Green
-Write-Host ""
-Start-Sleep -Seconds 1
+do {
+    # Reset Config, Paths
+    $config.SetConfig("softName", "") | Out-Null
+    $config.SetConfig("softPath", "") | Out-Null
+    $config.SetConfig("softPathSrc", "") | Out-Null
+    $config.SetConfig("softPathOut", "") | Out-Null
+    $config.SetConfig("softVerName", "") | Out-Null
+    $config.SetConfig("softVerPath", "") | Out-Null
+    $config.SetConfig("softCmdInstall", "install.cmd") | Out-Null
+    $config.SetConfig("intunewinName", "") | Out-Null
+    $config.SetConfig("intunewinPath", "") | Out-Null
+    $config.SetConfig("intunewinNameSoftware", "") | Out-Null
+    $config.SetConfig("intunewinPathSoftware", "") | Out-Null
+    
+    $paths.DelPath("source") | Out-Null
+    $paths.DelPath("out") | Out-Null
+    $paths.DelPath("cat") | Out-Null
 
 
-
-if ($debug) {
-    Write-Host ""
-    Write-Host "*** DEBUG ***"
-    $config.ShowConfig()
-    Write-Host ""
-    $paths.ShowPaths()
-    Write-Host "*** DEBUG ***"
-    Write-Host ""
-    pause
-}
-
-
-
-
-$verArgs = @{
-    lNames   = (Get-ChildItem -Path $config.GetConfig('softPathSrc') -Directory | Sort-Object Name -Descending)
-    title    = ("Generar archivo intunewin para [{0}]" -f $config.GetConfig('softName'))
-    msgEmpty = ("No se han detectado versiones para [{0}]" -f $config.GetConfig('softName'))
-    msgSelect = "Seleccione una version"
-    msgSelectErr = "Algo ha salido mal ya que no se ha seleccionado ningún Software :("
-}
-$tmpSelectedVersionSoftware = SelectItemList @verArgs
-if ([string]::IsNullOrEmpty($tmpSelectedVersionSoftware))
-{
-    exit 1    
-}
-$config.SetConfig("softVerName", $tmpSelectedVersionSoftware)
-$config.SetConfig("softVerPath", $paths.GetPathJoin('source', $tmpSelectedVersionSoftware))
-Remove-Variable -Name "tmpSelectedVersionSoftware" -Scope Global
-
-Write-Host ("Version seleccionado: {0} - {1}" -f $config.GetConfig('softName'), $config.GetConfig('softVerName')) -ForegroundColor Green
-Write-Host ""
-Start-Sleep -Seconds 1
-
-
-
-
-if ($debug) {
-    Write-Host ""
-    Write-Host "*** DEBUG ***"
-    $config.ShowConfig()
-    Write-Host "*** DEBUG ***"
-    Write-Host ""
-    pause
-}
-
-
-
-
-
-$tmpAppCmdInstall = Get-ValidInstallCmd -softCmdInstall $config.GetConfig('softCmdInstall') -softVerPath $config.GetConfig('softVerPath') -validExtensions @(".exe", ".com", ".bat", ".cmd", ".ps1")
-if ([string]::IsNullOrEmpty($tmpAppCmdInstall))
-{
-    exit 1
-}
-$config.SetConfig('softCmdInstall', $tmpAppCmdInstall)
-Remove-Variable -Name "tmpAppCmdInstall" -Scope Global
-
-Write-Host ("Script/Programa de Instalacion: {0}" -f $config.GetConfig('softCmdInstall')) -ForegroundColor Green
-Write-Host ""
-Start-Sleep -Seconds 1
-
-
-
-
-
-Clear-Host
-Write-Host ""
-Write-Host " Resumen:" -ForegroundColor Yellow
-Write-Host ("  - Software: {0}" -f $config.GetConfig('softName')) -ForegroundColor Yellow
-Write-Host ("  - Version : {0}" -f $config.GetConfig('softVerName')) -ForegroundColor Yellow
-Write-Host ""
-Write-Host ("  - Source: {0}" -f $config.GetConfig('softVerPath')) -ForegroundColor Cyan
-Write-Host ("  - Script: {0}" -f $config.GetConfig('softCmdInstall')) -ForegroundColor Cyan
-Write-Host ""
-Write-Host ("  - Salida: {0}" -f $config.GetConfig('softPathOut')) -ForegroundColor Green
-Write-Host ""
-
-if ($debug) {
-    Write-Host ""
-    Write-Host "*** DEBUG ***"
-    $config.ShowConfig()
-    Write-Host ""
-    $paths.ShowPaths()
-    Write-Host "*** DEBUG ***"
-    Write-Host ""
-}
-
-pause
-
-
-
-
-Write-Host ""
-Clear-Host
-$compileIntuneWin                 = [intuneWinAppUtil]::new($config.GetConfig('intuneWinAppUtilPath'))
-$compileIntuneWin.outPath         = $config.GetConfig('softPathOut')
-$compileIntuneWin.sourcePath      = $config.GetConfig('softVerPath')
-$compileIntuneWin.cmdInstall      = $config.GetConfig('softCmdInstall')
-$compileIntuneWin.softwareName    = $config.GetConfig('softName')
-$compileIntuneWin.softwareVersion = $config.GetConfig('softVerName')
-
-$config.SetConfig("intunewinName", $compileIntuneWin.GetNameFileIntuneWin())
-$config.SetConfig("intunewinPath", $compileIntuneWin.GetPathFileIntuneWin())
-$config.SetConfig("intunewinNameSoftware", $compileIntuneWin.GetNameFileIntuneWinSoftware())
-$config.SetConfig("intunewinPathSoftware", $compileIntuneWin.GetPathFileIntuneWinSoftware())
-
-if ($compileIntuneWin.CreateIntuneWinFile()) 
-{
-    Write-Host "Proceso de compilacion completado ok." -ForegroundColor Green
-    Write-Host ""
-
-    if ($compileIntuneWin.RenameIntuneWinFile())
-    {
-        Write-Host ("El archivo '{0}' se ha creado correctamente" -f $compileIntuneWin.GetNameFileIntuneWinSoftware()) -ForegroundColor Green
-        Invoke-Item -Path $config.GetConfig('softPathOut')
+    if ($debug) {
+        Write-Host ""
+        Write-Host "*** DEBUG ***"
+        $config.ShowConfig()
+        Write-Host ""
+        Write-Host "*************"
+        Write-Host ""
+        $paths.ShowPaths()
+        Write-Host "*** DEBUG ***"
+        Write-Host ""
+        pause
     }
-}
-Write-Host ""
+    
+
+    $softArgs = @{
+        lNames   = (Get-ChildItem -Path $paths.GetPath('software') -Directory | Sort-Object Name)
+        title    = "Lista de Software"
+        msgEmpty = "No se ha detectado ningun Software."
+        msgSelect = "Seleccione un Software"
+        msgSelectErr = "Algo ha salido mal ya que no se ha seleccionado ningún Software :("
+    }
+    $tmpSelectedSoftwareName = SelectItemList @softArgs
+    if ([string]::IsNullOrEmpty($tmpSelectedSoftwareName))
+    {
+        exit 1    
+    }
+    $config.SetConfig("softName", $tmpSelectedSoftwareName)
+    $config.SetConfig("softPath", $paths.GetPathJoin('software',  $tmpSelectedSoftwareName))
+    Remove-Variable -Name "tmpSelectedSoftwareName" -Scope Global
+
+    $paths.UpdatePath("source", $config.GetConfig("softPath"), $true) | Out-Null
+    $paths.UpdatePath("out", $config.GetConfig("softPath"), $true) | Out-Null
+    $paths.UpdatePath("cat", $config.GetConfig("softPath"), $true) | Out-Null
+    $config.SetConfig("softPathSrc", $paths.GetPath('source'))
+    $config.SetConfig("softPathOut", $paths.GetPath('out'))
+    $config.SetConfig("softPathCat", $paths.GetPath('cat'))
+
+    Write-Host ("Software seleccionado: {0}" -f $config.GetConfig('softName')) -ForegroundColor Green
+    Write-Host ""
+    Start-Sleep -Seconds 1
+
+
+
+    if ($debug) {
+        Write-Host ""
+        Write-Host "*** DEBUG ***"
+        $config.ShowConfig()
+        Write-Host ""
+        $paths.ShowPaths()
+        Write-Host "*** DEBUG ***"
+        Write-Host ""
+        pause
+    }
+
+
+
+
+    $verArgs = @{
+        lNames   = (Get-ChildItem -Path $config.GetConfig('softPathSrc') -Directory | Sort-Object Name -Descending)
+        title    = ("Generar archivo intunewin para [{0}]" -f $config.GetConfig('softName'))
+        msgEmpty = ("No se han detectado versiones para [{0}]" -f $config.GetConfig('softName'))
+        msgSelect = "Seleccione una version"
+        msgSelectErr = "Algo ha salido mal ya que no se ha seleccionado ningún Software :("
+    }
+    $tmpSelectedVersionSoftware = SelectItemList @verArgs
+    if ([string]::IsNullOrEmpty($tmpSelectedVersionSoftware))
+    {
+        continue
+        # exit 1
+    }
+    $config.SetConfig("softVerName", $tmpSelectedVersionSoftware)
+    $config.SetConfig("softVerPath", $paths.GetPathJoin('source', $tmpSelectedVersionSoftware))
+    Remove-Variable -Name "tmpSelectedVersionSoftware" -Scope Global
+
+    Write-Host ("Version seleccionado: {0} - {1}" -f $config.GetConfig('softName'), $config.GetConfig('softVerName')) -ForegroundColor Green
+    Write-Host ""
+    Start-Sleep -Seconds 1
+
+
+
+
+    if ($debug) {
+        Write-Host ""
+        Write-Host "*** DEBUG ***"
+        $config.ShowConfig()
+        Write-Host "*** DEBUG ***"
+        Write-Host ""
+        pause
+    }
+
+
+
+
+
+    $tmpAppCmdInstall = Get-ValidInstallCmd -softCmdInstall $config.GetConfig('softCmdInstall') -softVerPath $config.GetConfig('softVerPath') -validExtensions @(".exe", ".com", ".bat", ".cmd", ".ps1")
+    if ([string]::IsNullOrEmpty($tmpAppCmdInstall))
+    {
+        continue
+        # exit 1
+    }
+    $config.SetConfig('softCmdInstall', $tmpAppCmdInstall)
+    Remove-Variable -Name "tmpAppCmdInstall" -Scope Global
+
+    Write-Host ("Script/Programa de Instalacion: {0}" -f $config.GetConfig('softCmdInstall')) -ForegroundColor Green
+    Write-Host ""
+    Start-Sleep -Seconds 1
+
+
+
+
+
+    Clear-Host
+    Write-Host ""
+    Write-Host " Resumen:" -ForegroundColor Yellow
+    Write-Host ("  - Software: {0}" -f $config.GetConfig('softName')) -ForegroundColor Yellow
+    Write-Host ("  - Version : {0}" -f $config.GetConfig('softVerName')) -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host ("  - Source: {0}" -f $config.GetConfig('softVerPath')) -ForegroundColor Cyan
+    Write-Host ("  - Script: {0}" -f $config.GetConfig('softCmdInstall')) -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host ("  - Salida: {0}" -f $config.GetConfig('softPathOut')) -ForegroundColor Green
+    Write-Host ""
+
+    if ($debug) {
+        Write-Host ""
+        Write-Host "*** DEBUG ***"
+        $config.ShowConfig()
+        Write-Host ""
+        $paths.ShowPaths()
+        Write-Host "*** DEBUG ***"
+        Write-Host ""
+    }
+
+    pause
+
+
+
+
+    Write-Host ""
+    Clear-Host
+    $compileIntuneWin                 = [intuneWinAppUtil]::new($config.GetConfig('intuneWinAppUtilPath'))
+    $compileIntuneWin.outPath         = $config.GetConfig('softPathOut')
+    $compileIntuneWin.sourcePath      = $config.GetConfig('softVerPath')
+    $compileIntuneWin.cmdInstall      = $config.GetConfig('softCmdInstall')
+    $compileIntuneWin.softwareName    = $config.GetConfig('softName')
+    $compileIntuneWin.softwareVersion = $config.GetConfig('softVerName')
+    $compileIntuneWin.catInclude      = $true
+    $compileIntuneWin.catPath         = $config.GetConfig('softPathCat')
+
+    $config.SetConfig("intunewinName", $compileIntuneWin.GetNameFileIntuneWin())
+    $config.SetConfig("intunewinPath", $compileIntuneWin.GetPathFileIntuneWin())
+    $config.SetConfig("intunewinNameSoftware", $compileIntuneWin.GetNameFileIntuneWinSoftware())
+    $config.SetConfig("intunewinPathSoftware", $compileIntuneWin.GetPathFileIntuneWinSoftware())
+
+    if ($compileIntuneWin.CreateIntuneWinFile()) 
+    {
+        Write-Host "Proceso de compilacion completado ok." -ForegroundColor Green
+        Write-Host ""
+
+        if ($compileIntuneWin.RenameIntuneWinFile())
+        {
+            Write-Host ("El archivo '{0}' se ha creado correctamente" -f $compileIntuneWin.GetNameFileIntuneWinSoftware()) -ForegroundColor Green
+            Invoke-Item -Path $config.GetConfig('softPathOut')
+        }
+    }
+    Write-Host ""
+
+} while ($true)

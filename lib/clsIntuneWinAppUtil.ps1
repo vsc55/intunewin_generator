@@ -138,7 +138,7 @@ class intuneWinAppUtil {
             $processArgs = "-c `"{0}`" -s `"{1}`" -o `"{2}`"" -f $this.sourcePath, $this.cmdInstall, $this.outPath
             if ($this.catInclude)
             {
-                $processArgs += " -a `"{1}`"" -f $this.catPath
+                $processArgs += " -a `"{0}`"" -f $this.catPath
             }
 
             $psi = New-Object System.Diagnostics.ProcessStartInfo
