@@ -144,19 +144,10 @@ Write-Host ""
 
 
 do {
-    # Reset Config, Paths
-    $config.SetConfig("softName", "") | Out-Null
-    $config.SetConfig("softPath", "") | Out-Null
-    $config.SetConfig("softPathSrc", "") | Out-Null
-    $config.SetConfig("softPathOut", "") | Out-Null
-    $config.SetConfig("softVerName", "") | Out-Null
-    $config.SetConfig("softVerPath", "") | Out-Null
-    $config.SetConfig("softCmdInstall", "install.cmd") | Out-Null
-    $config.SetConfig("intunewinName", "") | Out-Null
-    $config.SetConfig("intunewinPath", "") | Out-Null
-    $config.SetConfig("intunewinNameSoftware", "") | Out-Null
-    $config.SetConfig("intunewinPathSoftware", "") | Out-Null
-    
+    # Reseteamos ajuste a los valores por defecto excepto "intuneWinAppUtilPath".
+    # También eliminamos los Paths del soft seleccionado.
+    $resetExceptionConfig = @("intuneWinAppUtilPath")
+    $config.ResetAllToDefault($resetExceptionConfig)
     $paths.DelPath("source") | Out-Null
     $paths.DelPath("out") | Out-Null
     $paths.DelPath("cat") | Out-Null

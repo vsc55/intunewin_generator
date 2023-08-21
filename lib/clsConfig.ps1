@@ -9,8 +9,9 @@
 
 class Config {
     
-    $default = @{}
-    $config  = @{}
+    $default    = @{}
+    $config     = @{}
+    $configFile = ""
 
     Config($defaultValues) {
         $this.default = $defaultValues;
@@ -19,11 +20,12 @@ class Config {
 
     [bool] LoadConfig([string] $configFilePath)
     {
-        if (Test-Path $configFilePath -PathType Leaf)
+        $this.configFile = $configFilePath
+        if (-not [string]::IsNullOrEmpty($this.configFile) -and (Test-Path $this.configFile -PathType Leaf))
         {
             try
             {
-                $jsonConfig = Get-Content -Raw -Path $configFilePath | ConvertFrom-Json
+                $jsonConfig = Get-Content -Raw -Path $this.configFile | ConvertFrom-Json
                 foreach ($key in $jsonConfig.PSObject.Properties.Name)
                 {
                     if ($this.config.ContainsKey($key))
@@ -79,6 +81,14 @@ class Config {
         return $null
     }
 
+    [bool] OptionDefaultExists([string] $option) {
+        return $this.default.ContainsKey($option)
+    }
+
+    [bool] ConfigIsDefault([string] $option) {
+        return $this.OptionDefaultExists($option) -and $this.GetDefaultValue($option) -eq $this.GetConfig($option)
+    }
+
     [bool] SaveConfig([string] $configFilePath) {
         try
         {
@@ -97,6 +107,41 @@ class Config {
             Write-Host ("Error saving JSON file: {0}" -f $_.Exception.Message) -ForegroundColor Red
         }
         return $false
+    }
+
+    [void] ResetAllToDefault([string[]] $optionsToKeep) {
+        if (-not [string]::IsNullOrEmpty($this.configFile) -and (Test-Path $this.configFile -PathType Leaf))
+        {
+            try
+            {
+                $jsonConfig = Get-Content -Raw -Path $this.configFile | ConvertFrom-Json
+                foreach ($key in $jsonConfig.PSObject.Properties.Name)
+                {
+                    if ($optionsToKeep -contains $key)
+                    {
+                        $optionsToKeep += $key
+                    }
+                }
+            }
+            catch
+            {
+                Write-Host ("Error reading JSON file: {0}" -f $_.Exception.Message) -ForegroundColor Red
+            }
+        }
+
+        $keysToReset = @()
+        # No podemos modificar directamente $this.config ya que estamos iterando
+        # sobre el con el foreach, tenemos que usar el segundo foreach para aplicar
+        # el reset del valor.
+        foreach ($key in $this.config.Keys) {
+            if ($optionsToKeep -notcontains $key -and -not $this.ConfigIsDefault($key))
+            {
+                $keysToReset += $key
+            }
+        }
+        foreach ($key in $keysToReset) {
+            $this.SetConfig($key, $this.GetDefaultValue($key)) | Out-Null
+        }
     }
 
     [void] ShowConfig() {
