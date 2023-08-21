@@ -1,0 +1,7 @@
+{
+    "appName": "openshot",
+    "appInstallPath": "OpenShot-x86_64.exe",
+    "appInstallArgs": "/VERYSILENT /NORESTART /LOG=\"{{temp}}\\OpenShot64-Install.log\"",
+    "appUninstallPath": "{{ProgramFiles}}\\OpenShot Video Editor\\unins000.exe",
+    "appUninstallArgs": "/VERYSILENT /NORESTART"
+}
