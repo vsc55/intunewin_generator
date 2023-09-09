@@ -3,34 +3,43 @@
 $AppName     = "GoogleEartPro"
 $AppPathFull = "C:\Program Files\Google\Google Earth Pro\client\googleearth.exe"
 
-$App         = (Get-ChildItem -Path $AppPathFull -ErrorAction SilentlyContinue)
-$FileVersion = (Get-Item -Path "$($App.FullName)" -ErrorAction SilentlyContinue).VersionInfo.FileVersion
+function CreateDetectionFileApp {
+    param (
+        [string]$AppName,
+        [string]$AppPathFull,
+        [string]$DetectionType = "FileExist",
+        [string]$FileVersion   = ""
+    )
 
+    $ifDetect = 'Test-Path -Path "{0}" -PathType Leaf' -f $AppPathFull
+    if (![string]::IsNullOrEmpty($FileVersion))
+    {
+        $ifDetect += ' -and [String](Get-Item -Path "{0}").VersionInfo.FileVersion -ge "{1}"' -f $AppPathFull, $FileVersion
+    }
 
-## Create Text File with File Detection Method Version
-If(Test-Path -Path $AppPathFull -PathType Leaf)
-{
-    $FilePath = ".\{0}_Detection_Method_{1}.ps1" -f $AppName, $FileVersion
+    $FileName      = "{0}_Detection_Method_{1}.ps1" -f $AppName, $DetectionType
+    $FilePath      = Join-Path -Path $PSScriptRoot -ChildPath $FileName
+    $scriptContent = @"
+if ($ifDetect) {
+    Write-Host "Installed"
+    Exit 0
+} else {
+    Exit 1
+}
+"@
     New-Item -Path "$FilePath" -Force
-    Set-Content -Path "$FilePath" -Value "If([String](Get-Item -Path `"$AppPathFull`" -ErrorAction SilentlyContinue).VersionInfo.FileVersion -ge `"$FileVersion`"){"
-    Add-Content -Path "$FilePath" -Value "Write-Host `"Installed`""
-    Add-Content -Path "$FilePath" -Value "Exit 0"
-    Add-Content -Path "$FilePath" -Value "}"
-    Add-Content -Path "$FilePath" -Value "else {"
-    Add-Content -Path "$FilePath" -Value "Exit 1"
-    Add-Content -Path "$FilePath" -Value "}"
-}
-else {
-    Write-Host ("No existe {0}, se omite Detection Version!" -f $AppPathFull)
+    $scriptContent | Out-File -FilePath "$FilePath" -Encoding utf8
 }
 
-## Create Text File with File Detection Method FileExist
-$FilePath = ".\{0}_Detection_Method_FileExist.ps1" -f $AppName
-New-Item -Path "$FilePath" -Force
-Set-Content -Path "$FilePath" -Value "If(Test-Path -Path `"$AppPathFull`" -PathType Leaf){"
-Add-Content -Path "$FilePath" -Value "Write-Host `"Installed`""
-Add-Content -Path "$FilePath" -Value "Exit 0"
-Add-Content -Path "$FilePath" -Value "}"
-Add-Content -Path "$FilePath" -Value "else {"
-Add-Content -Path "$FilePath" -Value "Exit 1"
-Add-Content -Path "$FilePath" -Value "}"
+if (Test-Path -Path $AppPathFull -PathType Leaf)
+{
+    $FileVersion = (Get-Item -Path "$($AppPathFull)" -ErrorAction SilentlyContinue).VersionInfo.FileVersion
+    CreateDetectionFileApp -AppName $AppName -AppPathFull $AppPathFull -DetectionType "Version" -FileVersion $FileVersion
+}
+else
+{
+    Write-Host ("The file [{0}] does not exist, skipping Detection Version!" -f $AppPathFull)
+}
+
+CreateDetectionFileApp -AppName $AppName -AppPathFull $AppPathFull
+Exit 0
