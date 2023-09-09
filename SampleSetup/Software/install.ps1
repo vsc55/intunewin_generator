@@ -1,9 +1,14 @@
+﻿# Version: 1.3
+#
 # Changelog:
 # ----------
 #   07/08/2023 - Creacion Script. (Javier Pastor)
 #   16/08/2023 - Implementar Start-Transcript, parametrizar ajustes y crear 
 #                archivo config.json. (Javier Pastor)
 #   30/08/2023 - Añadir template scriptPathRoot (Javier Pastor)
+#   09/09/2023 - Modificar la forma de ejecutar el programa. Ahora hacemos 
+#                RedirectStandardOutput y RedirectStandardError para que todo 
+#                se registre en el log con Start-Transcript. (Javier Pastor)
 #
 # Intune Cmd:
 #   Powershell.exe -NoProfile -ExecutionPolicy ByPass -File .\uninstall.ps1
@@ -238,9 +243,35 @@ function Send-Write-EventLog {
 
 try
 {
-    $ProcessInfo = Start-Process -FilePath $appInstallPath -ArgumentList $appInstallArgs -WindowStyle Hidden -RedirectStandardOutput $logFileNameFull -Wait -PassThru
-    $errCode     = $ProcessInfo.ExitCode
-    $errMsg      = $ProcessInfo.StandardError
+    # $ProcessInfo = Start-Process -FilePath $appInstallPath -ArgumentList $appInstallArgs -WindowStyle Hidden -RedirectStandardOutput $logFileNameFull -Wait -PassThru
+    # $errCode     = $ProcessInfo.ExitCode
+    # $errMsg      = $ProcessInfo.StandardError
+
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName               = $appInstallPath
+    $psi.Arguments              = $appInstallArgs
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError  = $true
+    $psi.UseShellExecute        = $false
+
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $psi
+    $process.Start() | Out-Null
+
+    while (!$process.HasExited)
+    {
+        while (!$process.StandardOutput.EndOfStream) { Write-ProcessOutput -process $process -isError $false }
+        while (!$process.StandardError.EndOfStream)  { Write-ProcessOutput -process $process -isError $true }
+        Start-Sleep -Milliseconds 100
+    }
+
+    # Leer los últimos datos después de que el proceso haya terminado
+    while ($process.StandardOutput.Peek() -ge 0) { Write-ProcessOutput -process $process -isError $false }
+    while ($process.StandardError.Peek() -ge 0)  { Write-ProcessOutput -process $process -isError $true }
+    Write-Host ""
+
+    $errCode = $process.ExitCode
+    $errMsg  = $process.StandardError
 }
 catch
 {
