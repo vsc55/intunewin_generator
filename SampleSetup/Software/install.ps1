@@ -3,6 +3,7 @@
 #   07/08/2023 - Creacion Script. (Javier Pastor)
 #   16/08/2023 - Implementar Start-Transcript, parametrizar ajustes y crear 
 #                archivo config.json. (Javier Pastor)
+#   30/08/2023 - Añadir template scriptPathRoot (Javier Pastor)
 #
 # Intune Cmd:
 #   Powershell.exe -NoProfile -ExecutionPolicy ByPass -File .\uninstall.ps1
@@ -133,6 +134,10 @@ $templates = @{
     }
     "{{temp}}" = @{
         'value'   = $env:TEMP
+        'replace' = { param($arg_find, $arg_source, $arg_newval) ![string]::IsNullOrEmpty($arg_newval) }
+    }
+    "{{scriptPathRoot}}" = @{
+        'value'   = $PSScriptRoot
         'replace' = { param($arg_find, $arg_source, $arg_newval) ![string]::IsNullOrEmpty($arg_newval) }
     }
     

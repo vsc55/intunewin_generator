@@ -1,6 +1,7 @@
 # Changelog:
 # ----------
 #   07/08/2023 - Creacion Script. (Javier Pastor)
+#   22/08/2023 - Add Suport Multiple Files INF. (Javier Pastor)
 
 # Intune Cmd:
 # Powershell.exe -NoProfile -ExecutionPolicy ByPass -File .\uninstall.ps1
@@ -9,8 +10,12 @@
 # "C:\Windows\sysnative\pnputil.exe" /delete-driver "C3422WE.inf" /uninstall >> "C:\Windows\Temp\DELL_C3422WE_log.txt"
 #
 
-$InfFile     = "C3422WE.inf"
-$LogFilePath = "C:\Windows\Temp\log_DELL_C3422WE_log.txt"
+
+$files_INF = @( "oemsetup.inf", "RPRNUT.inf" )
+$file_log  = "log_RICOH_IMC3000A_uninstall.txt"
+
+
+$LogFilePath = Join-Path $env:TEMP $file_log
 Start-Transcript -Path $LogFilePath -Append
 
 If ($ENV:PROCESSOR_ARCHITEW6432 -eq "AMD64") {
@@ -20,44 +25,85 @@ If ($ENV:PROCESSOR_ARCHITEW6432 -eq "AMD64") {
     Catch
     {
         $msgErr = "Failed to start $PSCOMMANDPATH"
-        $msgErr | Out-File -FilePath $logFilePath -Append
+        Write-Host $msgErr 
         Throw $msgErr
     }
     Exit
 }
 
-$pnputilPath     = "C:\Windows\system32\pnputil.exe"
-$ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
-$InfFilePath     = Join-Path -Path $ScriptDirectory -ChildPath $InfFile
+function Write-ProcessOutput {
+    param (
+        [System.Diagnostics.Process] $process,
+        [bool] $isError = $false
+    )
+
+    if ($isError) {
+        $outputLine = $process.StandardError.ReadLine()
+        $color = 'Red'
+    } else {
+        $outputLine = $process.StandardOutput.ReadLine()
+        $color = 'Green'
+    }
+
+    if ($null -ne $outputLine) {
+        Write-Host $outputLine -ForegroundColor $color
+    }
+}
 
 $errCode = 0
 $errMsg  = ""
 
-try
-{
-    $ProcessInfo = Start-Process -FilePath $pnputilPath -ArgumentList "/delete-driver `"$InfFilePath`" /uninstall" -WindowStyle Hidden -RedirectStandardOutput $LogFilePath -Wait -PassThru
-    $errCode = $ProcessInfo.ExitCode
-    $errMsg  = $ProcessInfo.StandardError
-}
-catch
-{  
-    $errCode = $_.Exception.HResult
-    $errMsg = $_.Exception.Message
+$ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+foreach ($fileINF in $files_INF) {
+    try
+    {
+        $processArgs = "/delete-driver `"{0}`" /uninstall" -f (Join-Path $ScriptDirectory $fileINF)
+
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName               = (Get-Command "pnputil.exe").Source
+        $psi.Arguments              = $processArgs
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError  = $true
+        $psi.UseShellExecute        = $false
+
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $psi
+        $process.Start() | Out-Null
+
+        while (!$process.HasExited)
+        {
+            while (!$process.StandardOutput.EndOfStream) { Write-ProcessOutput -process $process -isError $false }
+            while (!$process.StandardError.EndOfStream)  { Write-ProcessOutput -process $process -isError $true }
+            Start-Sleep -Milliseconds 100
+        }
+
+        # Leer los últimos datos después de que el proceso haya terminado
+        while ($process.StandardOutput.Peek() -ge 0) { Write-ProcessOutput -process $process -isError $false }
+        while ($process.StandardError.Peek() -ge 0)  { Write-ProcessOutput -process $process -isError $true }
+        Write-Host ""
+
+        $errCode = $process.ExitCode
+        $errMsg  = $process.StandardError
+    }
+    catch
+    {  
+        $errCode = $_.Exception.HResult
+        $errMsg = $_.Exception.Message
+        break
+    }
+
+    if ($errCode -eq 0 -or $errCode -eq 259 -or $errCode -eq 3010)
+    {
+        Write-Host ("UnInstall OK ({0})" -f $errCode)
+        $errCode = 0
+    }
+    else
+    {
+        Write-Host ("UnInstall Error ({0}): {1}" -f $errCode, $errMsg)
+        break
+    }
 }
 
-if ($errCode -eq 0 -or $errCode -eq 259 -or $errCode -eq 3010)
-{
-    $msg = "Install OK"
-    Write-Host $msg
-    $msg | Out-File -FilePath $logFilePath -Append
-    Stop-Transcript
-    Exit 0
-}
-else
-{
-    $msg =  "Error ($errCode): $errMsg"
-    Write-Host $msg
-    $msg | Out-File -FilePath $logFilePath -Append
-    Stop-Transcript
-    Exit 1
-}
+Stop-Transcript
+Exit $errCode
