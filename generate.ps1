@@ -52,6 +52,41 @@ if (-not $isLoad)
 
 
 
+$modulesDep        = @("MSGraph", "IntuneWin32App", "AzureAD", "PSIntuneAuth")
+$modulesAvailables = Get-Module -ListAvailable
+foreach ($module in $modulesDep) {
+    
+    if (-not ($modulesAvailables | Where-Object { $_.Name -eq $module }))
+    {
+        Write-Host ("Modulo '{0}' NO detectado!" -f $module) -ForegroundColor Yellow
+        $installModuleQuery = QueryYesNo -msg ("¿Deseas instalar el módulo '{0}'? (Y/N)" -f $module)
+        if ($installModuleQuery -eq $false)
+        {
+            Write-Host ("El modulo '{0}' es necesario!" -f $module) -ForegroundColor Red
+            Write-Host ""
+            Exit 1
+        }
+        Write-Host ("Instalando el modulo '{0}'..." -f $module) -ForegroundColor Yellow
+        Install-Module -Name $module -Scope CurrentUser -Force
+        Write-Host ("Modulo '{0}' instalado!" -f $module) -ForegroundColor Green
+        Write-Host ""
+    }
+    else
+    {
+        Write-Host ("Modulo '{0}' detectado - OK!" -f $module) -ForegroundColor Green
+    }
+}
+Write-Host ""
+
+
+
+
+#Pre-reqs = Install-Module MSGraph, IntuneWin32App, AzureAD, and PSIntuneAuth
+
+#Connect to Graph API - Commented out if running from master file. if running individually, uncomment below line.
+$TenantID = Read-Host "Enter your TenantID (i.e. - domain.com or domain.onmicrosoft.com)"
+
+
 
 # Crear Objetos Globales
 $paths = [PathItemPool]::new()
@@ -71,6 +106,9 @@ $config.NewConfig("softName", "") | Out-Null
 $config.NewConfig("softPath", "") | Out-Null
 $config.NewConfig("softPathSrc", "") | Out-Null
 $config.NewConfig("softPathOut", "") | Out-Null
+$config.NewConfig("softPathInfo", "") | Out-Null
+$config.NewConfig("softPathLogo", "") | Out-Null
+$config.NewConfig("softFileLogo", "") | Out-Null
 $config.NewConfig("softVerName", "") | Out-Null
 $config.NewConfig("softVerPath", "") | Out-Null
 $config.NewConfig("softVerPathSrc", "") | Out-Null
@@ -276,17 +314,296 @@ do {
     $config.SetConfig("intunewinNameSoftware", $compileIntuneWin.GetNameFileIntuneWinSoftware())
     $config.SetConfig("intunewinPathSoftware", $compileIntuneWin.GetPathFileIntuneWinSoftware())
 
-    if ($compileIntuneWin.CreateIntuneWinFile()) 
+    $buildIntunewinFile = $true
+    if (Test-Path -Path $config.GetConfig("intunewinPathSoftware") -PathType Leaf)
     {
-        Write-Host "Proceso de compilacion completado ok." -ForegroundColor Green
+        $buildIntunewinFile = QueryYesNo -msg ("¿El archivo [{0}] ya se ha procesado queres crearlo de nuevo? (Y/N)" -f $config.GetConfig("intunewinPathSoftware"))
         Write-Host ""
-
-        if ($compileIntuneWin.RenameIntuneWinFile())
+    }
+    if ($buildIntunewinFile -eq $true)
+    {
+        if ($compileIntuneWin.CreateIntuneWinFile()) 
         {
-            Write-Host ("El archivo '{0}' se ha creado correctamente" -f $compileIntuneWin.GetNameFileIntuneWinSoftware()) -ForegroundColor Green
-            Invoke-Item -Path $config.GetConfig('softPathOut')
+            Write-Host "Proceso de compilacion completado ok." -ForegroundColor Green
+            Write-Host ""
+
+            if ($compileIntuneWin.RenameIntuneWinFile())
+            {
+                Write-Host ("El archivo '{0}' se ha creado correctamente" -f $compileIntuneWin.GetNameFileIntuneWinSoftware()) -ForegroundColor Green
+                Invoke-Item -Path $config.GetConfig('softPathOut')
+            }
+        }
+        Write-Host ""
+    }
+
+
+
+
+    # --- INI --- Seccion Publica App
+
+    $queryPublicApp = QueryYesNo -msg "¿Quieres Publicar la App? (Y/N)"
+    Write-Host ""
+    if ($queryPublicApp -eq $true)
+    {
+        $abortPublicApp = $false
+        $config.SetConfig("softPathInfo", (Join-Path $config.GetConfig('softVerPath') "info.json"))
+        if (-not (Test-Path -Path $config.GetConfig('softPathInfo') -PathType Leaf))
+        {
+            $config.SetConfig("softPathInfo", (Join-Path $config.GetConfig('softPath') "info.json"))
+            if (-not (Test-Path -Path $config.GetConfig('softPathInfo') -PathType Leaf))
+            {
+                Write-Host ("No se detecto info.json") -ForegroundColor Yellow
+                Write-Host ""
+                Start-Sleep -Seconds 1
+                $abortPublicApp = $true
+            }
+        }
+
+        # Read config json
+        if ($abortPublicApp -eq $false)
+        {
+            $abortPublicApp    = $true
+            $Win32AppArgs      = @{}
+            $Win32AppRemplaces = @{}
+            if (Test-Path $config.GetConfig('softPathInfo') -PathType Leaf)
+            {
+                try
+                {
+                    $infoJsonContent = Get-Content -Raw -Path $config.GetConfig('softPathInfo') | ConvertFrom-Json
+                    if ($infoJsonContent.PSObject.Properties.Name -contains "Win32App")
+                    {
+                        $infoJsonContent.Win32App.PSObject.Properties | ForEach-Object {
+                            $Win32AppArgs[$_.Name] = $_.Value
+                        }
+                    }
+                    if ($infoJsonContent.PSObject.Properties.Name -contains "Remplaces")
+                    {
+                        $Win32AppRemplaces = $infoJsonContent.Remplaces
+                    }
+                    $abortPublicApp = $false
+                }
+                catch
+                {
+                    # $errCode     = $_.Exception.HResult
+                    $errMsg      = $_.Exception.Message
+                    $errLocation = $_.InvocationInfo.PositionMessage
+                    Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
+                }
+            }
+            else
+            {
+                Write-Host ("File {0} not found. :(" -f $configFile) -ForegroundColor Red
+            }
+        }
+
+        # Check file intunewin exist
+        if ($abortPublicApp -eq $false)
+        {
+            $Win32AppArgs['FilePath'] = $config.GetConfig("intunewinPathSoftware")
+            if (-not (Test-Path -Path $Win32AppArgs['FilePath'] -PathType Leaf))
+            {
+                Write-Host ("No se ha encontrado el archivo [{0}]" -f $Win32AppArgs['FilePath']) -ForegroundColor Yellow
+                Write-Host ""
+                Start-Sleep -Seconds 1
+                $abortPublicApp = $true
+            }
+            else
+            {
+                # $IntuneWinMetaData = Get-IntuneWin32AppMetaData -FilePath $Win32AppArgs['FilePath']
+            }
+        }
+
+        # Connect Tenant
+        if ($abortPublicApp -eq $false)
+        {
+            Write-Host ("Conectando con el Tenant...") -ForegroundColor Green
+            try
+            {
+                #Pre-reqs = Install-Module MSGraph, IntuneWin32App, AzureAD, and PSIntuneAuth
+                Connect-MSIntuneGraph -TenantID $TenantID
+            }
+            catch
+            {
+                # $errCode     = $_.Exception.HResult
+                $errMsg      = $_.Exception.Message
+                $errLocation = $_.InvocationInfo.PositionMessage
+                Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
+                Start-Sleep -Seconds 2
+                $abortPublicApp = $true
+                pause
+                Continue
+            }
+            Start-Sleep -Seconds 2
+        }
+        
+        # Public App
+        if ($abortPublicApp -eq $false)
+        {
+            # "AppVersion" = $IntuneWinMetaData.ApplicationInfo.MsiInfo.MsiProductVersion
+            $Win32AppArgs['AppVersion']  = $config.GetConfig('softVerName')
+            # $Win32AppArgs['DisplayName'] = "{0} {1}" -f $Win32AppArgs['DisplayName'], $Win32AppArgs['AppVersion']
+
+            
+            $NewAppDipalyName = $Win32AppArgs['DisplayName']
+            $NewAppVersion    = $Win32AppArgs['AppVersion']
+            $Win32AppLatest   = Get-IntuneWin32App -DisplayName $NewAppDipalyName | Where-Object { $_.displayVersion -eq $NewAppVersion }
+
+           
+            if ($null -eq $Win32AppLatest)
+            {
+                # Set Logo Path
+                $config.SetConfig("softPathLogo", (Join-Path $config.GetConfig('softVerPath') "logo"))
+                $config.SetConfig("softFileLogo", (Join-Path $config.GetConfig('softPathLogo') "logo.png"))
+                if (-not (Test-Path -Path $config.GetConfig('softFileLogo') -PathType Leaf))
+                {
+                    $config.SetConfig("softPathLogo", (Join-Path $config.GetConfig('softPath') "logo"))
+                    $config.SetConfig("softFileLogo", (Join-Path $config.GetConfig('softPathLogo') "logo.png"))
+
+                    if (-not (Test-Path -Path $config.GetConfig('softFileLogo') -PathType Leaf))
+                    {
+                        $config.SetConfig("softFileLogo", "")
+                        Write-Host ("No se detecto logo") -ForegroundColor Yellow
+                        Write-Host ""
+                    }
+                }
+                if ($config.GetConfig('softFileLogo') -ne "" -and (Test-Path -Path $config.GetConfig('softFileLogo') -PathType Leaf))
+                {
+                    $Win32AppArgs['Icon'] = New-IntuneWin32AppIcon -FilePath $config.GetConfig('softFileLogo')
+                }
+
+
+
+                #Create Requirement Rule
+                $Win32AppArgs['RequirementRule'] = New-IntuneWin32AppRequirementRule -Architecture x64 -MinimumSupportedWindowsRelease "W10_21H1"
+
+
+
+                # detection rules
+                $DetectionRuleScriptFile = "D:\Source\intunewin_generator\Software\test1\upload\SEH_UTN_Manager_Detection_Method_3.3.10.ps1"
+                $Win32AppArgs['DetectionRule'] = New-IntuneWin32AppDetectionRuleScript -ScriptFile $DetectionRuleScriptFile -EnforceSignatureCheck $false -RunAs32Bit $false
+
+
+
+                # Create custom return code
+                # $ReturnCode = New-IntuneWin32AppReturnCode -ReturnCode 1337 -Type retry
+                # $Win32AppArgs['ReturnCode'] = $ReturnCode
+
+
+                Write-Host ("Publicando App [{0} {1}]..." -f $Win32AppArgs['DisplayName'], $Win32AppArgs['AppVersion']) -ForegroundColor Green
+                Add-IntuneWin32App @Win32AppArgs
+                Write-Host ("Publicacion completa!" -f $OldAppVersion, $NewAppVersion) -ForegroundColor Green
+                Write-Host ""
+                Start-Sleep -Seconds 1
+
+
+                # Update Old Version
+                if ($Win32AppRemplaces.PSObject.Properties.Name -contains $Win32AppArgs['AppVersion'])
+                {
+                    $OldAppVersion = $Win32AppRemplaces.PSObject.Properties[$NewAppVersion].Value
+                    
+                    Write-Host ("Asignando sustitucion de version ({0}) por ({1})..." -f $OldAppVersion, $NewAppVersion) -ForegroundColor Green
+
+                    $Win32AppLatest   = Get-IntuneWin32App -DisplayName $NewAppDipalyName | Where-Object { $_.displayVersion -eq $NewAppVersion }
+                    $Win32AppPrevious = Get-IntuneWin32App -DisplayName $NewAppDipalyName | Where-Object { $_.displayVersion -eq $OldAppVersion }
+
+                    $AllowSupersedence = $true
+                    if ($Win32AppLatest -is [System.Object])
+                    {
+                        if ($Win32AppLatest.PSObject.Properties.Match('Count').Count -gt 0)
+                        {
+                            $AllowSupersedence = $false
+                            Write-Host ("Se ha encontrado esta version de la app repetida {0} veces. Echa un ojo a ver que esta pasa!" -f $Win32AppLatest.Count) -ForegroundColor Red
+                            Write-Host ""
+                            Get-IntuneWin32App -DisplayName $NewAppDipalyName | Where-Object { $_.displayVersion -eq $NewAppVersion } | Select-Object -Property displayName, displayVersion, id, createdDateTime | Sort-Object -Property createdDateTime
+                            Write-Host ""
+                            pause
+                        }
+                    }
+                    if ($AllowSupersedence -eq $true)
+                    {
+                        $Supersedence = New-IntuneWin32AppSupersedence -ID $Win32AppPrevious.id -SupersedenceType "Replace" # Replace for uninstall, Update for updating
+                        Add-IntuneWin32AppSupersedence -ID $Win32AppLatest.id -Supersedence $Supersedence
+                        # Get-IntuneWin32AppSupersedence -ID $Win32AppLatest.id -Verbose
+                        # Remove-IntuneWin32AppSupersedence -ID $Win32AppLatest.id -Verbose
+
+                        Write-Host ("Sustitucion completa!" -f $OldAppVersion, $NewAppVersion) -ForegroundColor Green
+                        Write-Host ""
+                        Start-Sleep -Seconds 1
+                    }
+                }
+            }
+            else
+            {
+                if ($Win32AppLatest -is [System.Object])
+                {
+                    if ($Win32AppLatest.PSObject.Properties.Match('Count').Count -gt 0)
+                    {
+                        Write-Host ("Se ha encontrado esta version de la app repetida {0} veces. Echa un ojo a ver que esta pasa!" -f $Win32AppLatest.Count) -ForegroundColor Red
+                        Write-Host ""
+                        Get-IntuneWin32App -DisplayName $NewAppDipalyName | Where-Object { $_.displayVersion -eq $NewAppVersion } | Select-Object -Property displayName, displayVersion, id, createdDateTime | Sort-Object -Property createdDateTime
+                    }
+                    elseif ($Win32AppLatest.PSObject.Properties.Match('id').Count -gt 0)
+                    {
+                        Write-Host ("Actualizando PackageFile de la App [{0} {1}]..." -f $Win32AppArgs['DisplayName'], $Win32AppArgs['AppVersion']) -ForegroundColor Green
+                        Update-IntuneWin32AppPackageFile -ID $Win32AppLatest.id -FilePath $Win32AppArgs['FilePath']
+                        Write-Host ("Actualizcion completa!" -f $OldAppVersion, $NewAppVersion) -ForegroundColor Green
+                    }
+                    else
+                    {
+                        Write-Host ("Actualizando PackageFile abortada, no se detecto ID!") -ForegroundColor Red
+                    }
+                    Write-Host ""
+                    Start-Sleep -Seconds 1
+                }
+                else
+                {
+                    $formatoResult = ""
+                    if ($null -eq $Win32AppLatest)
+                    {
+                        $formatoResult = "Null"
+                    }
+                    elseif ($Win32AppLatest -is [int])
+                    {
+                        $formatoResult = "Int"
+                    }
+                    elseif ($Win32AppLatest -is [string])
+                    {
+                        $formatoResult = "String"
+                    }
+                    elseif ($Win32AppLatest -is [bool])
+                    {
+                        $formatoResult = "Bool"
+                    }
+                    elseif ($Win32AppLatest -is [double])
+                    {
+                        $formatoResult = "Double"
+                    }
+                    elseif ($Win32AppLatest -is [array])
+                    {
+                        $formatoResult = "Array"
+                    }
+                    elseif ($Win32AppLatest -is [Hashtable])
+                    {
+                        $formatoResult = "Hashtable"
+                    }
+                    elseif ($Win32AppLatest -is [DateTime])
+                    {
+                        $formatoResult = "DateTime"
+                    }
+                    else
+                    {
+                        $formatoResult = "Unknown"
+                    }
+
+                    Write-Host ("Formato no valido [{0}] en la deteccion de si existe el pakete en Intune!" -f $formatoResult) -ForegroundColor Red
+                    Write-Host ""
+                    Start-Sleep -Seconds 1
+                    pause
+                }
+            }
         }
     }
-    Write-Host ""
+
+    # --- END --- Seccion Publica App
 
 } while ($true)

@@ -19,6 +19,29 @@ function GetAsterisksLine($text) {
     return ("*" * $lineLength)
 }
 
+function QueryYesNo {
+    param(
+        [string]$msg,
+        [string]$optYes = "^(si|sí|s|yes|y)$",
+        [string]$optNo  = "^(no|n)$"
+    )
+    do {
+        $respuesta = Read-Host $msg
+        switch -Regex ($respuesta.ToLower()) {
+            $optYes {
+                return $true
+            }
+            $optNo {
+                return $false
+            }
+            default {
+                Write-Host "Opcion no valida!" -ForegroundColor Red
+                Start-Sleep -Seconds 2
+            }
+        }
+    } while ($true)
+} 
+
 function SelectItemList {
     param(
         [System.Collections.Generic.List[string]]$lNames,
