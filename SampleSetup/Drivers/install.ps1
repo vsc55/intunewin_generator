@@ -12,11 +12,14 @@
 # "C:\Windows\System32\pnputil.exe" /add-driver "C3422WE.inf" /install >> "C:\Windows\Temp\DELL_C3422WE_log.txt"
 #
 
+$script_name ="RICOH_IMC3000A_Install"
 
-$files_INF = @( "oemsetup.inf", "RPRNUT.inf" )
-$file_log  = "log_RICOH_IMC3000A_install.txt"
+$files_INF = @(
+    "oemsetup.inf",
+    "RPRNUT.inf"
+)
 
-
+$file_log  = "log_driver_{0}.txt" -f $script_name
 $LogFilePath = Join-Path $env:TEMP $file_log
 Start-Transcript -Path $LogFilePath -Append
 
