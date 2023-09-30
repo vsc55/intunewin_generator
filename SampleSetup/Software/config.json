@@ -2,6 +2,14 @@
     "appName": "openshot",
     "appInstallPath": "OpenShot-x86_64.exe",
     "appInstallArgs": "/VERYSILENT /NORESTART /LOG=\"{{temp}}\\OpenShot64-Install.log\"",
+    "appInstallRemovePost": [
+        "C:\\file.tmp",
+        "C:\\TempDir1"
+    ],
     "appUninstallPath": "{{ProgramFiles}}\\OpenShot Video Editor\\unins000.exe",
-    "appUninstallArgs": "/VERYSILENT /NORESTART"
+    "appUninstallArgs": "/VERYSILENT /NORESTART",
+    "appUninstallRemovePost": [
+        "C:\\file.tmp",
+        "{{ProgramFiles}}\\OpenShot Video Editor"
+    ]
 }

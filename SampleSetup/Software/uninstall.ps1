@@ -1,14 +1,27 @@
-﻿# Version: 1.3
+﻿# Version: 1.4
 #
 # Changelog:
 # ----------
+#   Ver 1.0
 #   07/08/2023 - Creacion Script. (Javier Pastor)
+#
+#   Ver 1.1
 #   16/08/2023 - Implementar Start-Transcript, parametrizar ajustes y crear 
 #                archivo config.json. (Javier Pastor)
+#
+#   Ver 1.2
 #   30/08/2023 - Añadir template scriptPathRoot (Javier Pastor)
+#
+#   Ver 1.3
 #   09/09/2023 - Modificar la forma de ejecutar el programa. Ahora hacemos 
 #                RedirectStandardOutput y RedirectStandardError para que todo 
 #                se registre en el log con Start-Transcript. (Javier Pastor)
+#
+#   Ver 1.4
+#   30/09/2023 - Añadir "appUninstallRemovePost" a config.json para poder definir 
+#                que archivos o carpetas deseamos eliminar despues de la desinstalacion
+#                correcta del programa. (Javier Pastor)
+#              - Añadir {{userPublic}} y {{userRoaming}} a las plantillas. (Javier Pastor)
 #
 # Intune Cmd:
 #   Powershell.exe -NoProfile -ExecutionPolicy ByPass -File .\uninstall.ps1
@@ -20,6 +33,9 @@
 #               "appName": "openshot",
 #               "appUninstallPath": "{{ProgramFiles}}\\OpenShot Video Editor\\unins000.exe",
 #               "appUninstallArgs": "/VERYSILENT /NORESTART"
+#               "appUninstallRemovePost": [
+#                   "{{userRoaming}}\\OpenShot"
+#               ]
 #           }
 #
 #
@@ -31,7 +47,6 @@
 #           el LOG se guarda en la ruta "%TEMP%\log_intune_global.txt". Una vez
 #           ya cargados los ajustes se usara el archivo definido en "config.json"
 #           o en su valor por defecto "%temp%\{{appName}}_process.txt".
-#
 #
 
 
@@ -73,7 +88,7 @@ else
 }
 
 # Definimos las var en blanco
-$appName = $appUninstallPath = $appUninstallArgs = $logFilePath = $logFileName = $isOkCleanLog = $isOkRemoveLog = ""
+$appName = $appUninstallPath = $appUninstallArgs = $appUninstallRemovePost = $logFilePath = $logFileName = $isOkCleanLog = $isOkRemoveLog = ""
 
 # Definir las propiedades y sus valores por defecto
 $propertyMappings = @{
@@ -86,6 +101,10 @@ $propertyMappings = @{
     }
     "appUninstallArgs" = @{
         'valueDefault'   = ""
+    }
+    "appUninstallRemovePost" = @{
+        'valueDefault'   = @()
+        'isEmptyDefault' = $true
     }
     "logFilePath" = @{
         'valueDefault'   = '{{temp}}'
@@ -143,6 +162,14 @@ $templates = @{
     }
     "{{scriptPathRoot}}" = @{
         'value'   = $PSScriptRoot
+        'replace' = { param($arg_find, $arg_source, $arg_newval) ![string]::IsNullOrEmpty($arg_newval) }
+    }
+    "{{userPublic}}" = @{
+        'value'   = $env:Public
+        'replace' = { param($arg_find, $arg_source, $arg_newval) ![string]::IsNullOrEmpty($arg_newval) }
+    }
+    "{{userRoaming}}" = @{
+        'value'   = $env:APPDATA
         'replace' = { param($arg_find, $arg_source, $arg_newval) ![string]::IsNullOrEmpty($arg_newval) }
     }
     
@@ -241,6 +268,26 @@ function Send-Write-EventLog {
     Write-EventLog -LogName Application -Source Application -EventId $eventId -EntryType $entryType -Message $formattedMessage
 }
 
+function Write-ProcessOutput {
+    param (
+        [System.Diagnostics.Process] $process,
+        [bool] $isError = $false
+    )
+
+    if ($isError) {
+        $outputLine = $process.StandardError.ReadLine()
+        $color = 'Red'
+    } else {
+        $outputLine = $process.StandardOutput.ReadLine()
+        $color = 'Green'
+    }
+
+    if ($null -ne $outputLine) {
+        Write-Host $outputLine -ForegroundColor $color
+    }
+}
+
+
 try
 {
     # $ProcessInfo = Start-Process -FilePath $appUninstallPath -ArgumentList $appUninstallArgs -WindowStyle Hidden -RedirectStandardOutput $logFileNameFull -Wait -PassThru
@@ -279,6 +326,39 @@ catch
     $errMsg      = $_.Exception.Message
     $errLocation = $_.InvocationInfo.PositionMessage
     Send-Write-EventLog -entryType Error -message ("{0} {1}" -f $errMsg, $errLocation)
+}
+
+if ($errCode -eq 0)
+{
+    Foreach ($path_remove in $appUninstallRemovePost) {
+        Try
+        {
+            if (Test-Path $path_remove -PathType Container)
+            {
+                # Remove Folder
+                Remove-Item -LiteralPath $path_remove -Force -Recurse
+            }
+            elseif (Test-Path $path_remove -PathType Leaf)
+            {
+                # Remove File
+                Remove-Item -Path $path_remove -Force
+            }
+            else
+            {
+                Write-Host ("Skipped, item [{0}] not exist" -f $path_remove)
+                Continue
+            }
+        }
+        catch
+        {
+            $errCode     = $_.Exception.HResult
+            $errMsg      = $_.Exception.Message
+            $errLocation = $_.InvocationInfo.PositionMessage
+            Write-Host ("Error to remove [{0}] - Code {1}: {2}" -f $path_remove, $errCode, $errMsg)
+            Break
+        }
+        Write-Host ("Item [{0}] removed OK" -f $path_remove)
+    }
 }
 
 if ($errCode -eq 0)
