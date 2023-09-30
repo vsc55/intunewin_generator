@@ -22,6 +22,7 @@
 #                que archivos o carpetas deseamos eliminar despues de la instalacion
 #                correcta del programa. (Javier Pastor)
 #              - Añadir {{userPublic}} y {{userRoaming}} a las plantillas. (Javier Pastor)
+#              - Añadir funciona Write-ProcessOutput. (Javier Pastor)
 #
 # Intune Cmd:
 #   Powershell.exe -NoProfile -ExecutionPolicy ByPass -File .\uninstall.ps1
