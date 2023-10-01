@@ -1,0 +1,21 @@
+{
+    "Remplaces":  {
+                      "1.2":  "1.1"
+                  },
+    "Win32App":  {
+                     "DisplayName":  "Test1",
+                     "Description":  "Esto eso una app win32 de prueba",
+                     "Publisher":  "Nombre del Editor",
+                     "Developer":  "Developer",
+                     "Owner":  "Owner",
+                     "InformationURL":  "http://www.google.es",
+                     "PrivacyURL":  "http://www.google.es",
+                     "CompanyPortalFeaturedApp":  false,
+                     "InstallExperience":  "system",
+                     "RestartBehavior":  "suppress",
+                     "InstallCommandLine":  "install.cmd",
+                     "UninstallCommandLine":  "uninstall.cmd",
+                     "Architecture":  "x64",
+                     "MinimumSupportedWindowsRelease":  "W10_22H2"
+                 }
+}
