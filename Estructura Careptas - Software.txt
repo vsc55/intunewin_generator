@@ -1,14 +1,16 @@
 -----------------------------------------------------------
 Software
-	- Nombre del Software
+	- <Nombre del Software>
 		- info.json
 		- logo\logo.png
 		- out
 		- source
-			- version
+			- <version>
 				- cat
+				- info.json 		(opcional)
+				- logo\logo.png		(opcional)
+				- scripts\Detection_Script.ps1
 				- src
-				- logo\logo.png
 -----------------------------------------------------------
 
 
@@ -22,15 +24,34 @@ Software
 		- source
 			- 3.1.1.0
 				- cat
+				- scripts\Detection_Script.ps1
 				- src
 -----------------------------------------------------------
 
-info.json: Este archivo contiene la información que se usara para crear la app en intune, si no existe se omitirá el proceso de publicación de la app.
+info.json:
+	- Este archivo contiene la información que se usara para crear la app en intune, si no existe se creara con los
+	  valores predeterminados.
+	- Si una versión necesita una valores distinta al resto se puede usar un archivo info.json dentro de la carpeta
+	  de la versión. Este info.json solo se aplicara a esta versión.
+	- El modo de carga del archivo info.json consta de dos partes. En la primera se busca en la carpeta de la versión
+	  del programa, si no existe en esta carpeta pasara a buscar en la carpeta general de la app. Si no se localiza en
+	  ninguno de los sitios, se creara un archivo info.json con los valores predeterminados en el directorio de la app.
 
-logo.png: Este archivo lo podemos definir en dos zonas. En el directorio raíz de la app en la carpeta logo, o en la carpeta de la versión en la carpeta logo.
-	  El funcionamiento es el siguiente. El programa buscara en primer lugar si existe el archivo logo.png en la carpeta de la versión, si no lo encuentra pasara 
-	  a buscar en la carpeta raíz de la app. Si no existe en ninguno de los dos no se creará logo.
+logo.png:
+	- Este archivo lo podemos definir en dos zonas. En el directorio raíz de la app en la carpeta logo, o en la carpeta 
+	  de la versión en la carpeta logo.
+	- El funcionamiento es el siguiente. El programa buscara en primer lugar si existe el archivo logo.png en la carpeta
+	  de la versión, si no lo encuentra pasara a buscar en la carpeta raíz de la app. Si no existe en ninguno de los dos
+	  no se creará logo.
 
-out: salida de los archivos intunewin
+out:
+	- Salida de los archivos intunewin
 
-source: fuentes de las distintas versiones de los programas y scripts de instalación.
+source:
+	- Fuentes de las distintas versiones de los programas y scripts de instalación.
+
+scripts:
+	- Directorio donde se guardan script relacionados con la versión del programa como por ejemplo "Detection_Script.ps1".
+
+Detection_Script.ps1:
+	- Script que se usara para la detección del programa.

@@ -217,3 +217,20 @@ function Get-ValidInstallCmd {
     } while (!(Test-Path -Path $softVerPathFull -PathType Leaf))
     return $softCmdInstall
 }
+
+function Get-ValidarURL {
+    param (
+        [string]$url
+    )
+
+    # Expresión regular para validar una URL
+    $patronURL = "^(http|https)://([\w-]+\.)+[\w-]+(/[\w- ./?%&=]*)?$"
+    $regex = New-Object System.Text.RegularExpressions.Regex $patronURL
+
+    # Validar la URL
+    if ($regex.IsMatch($url)) {
+        return $true  # La URL está bien formada
+    } else {
+        return $false  # La URL no está bien formada
+    }
+}

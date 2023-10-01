@@ -52,7 +52,7 @@ if (-not $isLoad)
 
 
 
-
+# https://github.com/MSEndpointMgr/IntuneWin32App/
 $modulesDep = @("MSGraph", "IntuneWin32App", "AzureAD", "PSIntuneAuth")
 foreach ($module in $modulesDep) {
     
@@ -69,7 +69,7 @@ foreach ($module in $modulesDep) {
         }
         Write-Host ("Instalando el modulo '{0}'..." -f $module) -ForegroundColor Yellow  -NoNewline
         try {
-            Install-Module -Name $module -Scope CurrentUser -Force -ErrorAction Stop
+            Install-Module -Name $module -Scope CurrentUser  -AcceptLicense -Force -ErrorAction Stop
         }
         catch
         {
@@ -101,7 +101,9 @@ $TenantID = Read-Host "Enter your TenantID (i.e. - domain.com or domain.onmicros
 $TenantConnection = ConnectTenantMSIntune -TenantID $TenantID
 if ($TenantConnection -eq $false)
 {
-    Exit 1
+    $TenantID = ""
+    Write-Host "Se desactiva soporte Intune!!" -ForegroundColor Red
+    Start-Sleep -Seconds 5
 }
 
 
@@ -130,6 +132,8 @@ $config.NewConfig("softVerName", "") | Out-Null
 $config.NewConfig("softVerPath", "") | Out-Null
 $config.NewConfig("softVerPathSrc", "") | Out-Null
 $config.NewConfig("softVerPathCat", "") | Out-Null
+$config.NewConfig("softVerPathScript", "") | Out-Null
+$config.NewConfig("softVerScriptDetection", "") | Out-Null
 $config.NewConfig("softCmdInstall", "install.cmd") | Out-Null
 $config.NewConfig("intunewinName", "") | Out-Null
 $config.NewConfig("intunewinPath", "") | Out-Null
@@ -150,7 +154,7 @@ if (Test-Path $configFile -PathType Leaf)
 }
 else
 {
-    Write-Host "El archivo de configuracion no existe." -ForegroundColor Yellow   
+    Write-Host "El archivo de configuracion no existe." -ForegroundColor Yellow
 }
 Write-Host ""
 
@@ -216,8 +220,10 @@ do {
     $paths.DelPath("out") | Out-Null
     $paths.DelPath("src") | Out-Null
     $paths.DelPath("cat") | Out-Null
+    $paths.DelPath("scripts") | Out-Null    
 
-   
+    
+
     ShowDebugObj
 
 
@@ -269,8 +275,14 @@ do {
     
     $paths.UpdatePath("src", $config.GetConfig("softVerPath"), $true) | Out-Null
     $paths.UpdatePath("cat", $config.GetConfig("softVerPath"), $true) | Out-Null
+    $paths.UpdatePath("scripts", $config.GetConfig("softVerPath"), $true) | Out-Null
     $config.SetConfig("softVerPathSrc", (Join-Path $config.GetConfig('softVerPath') "src"))
     $config.SetConfig("softVerPathCat", (Join-Path $config.GetConfig('softVerPath') "cat"))
+    $config.SetConfig("softVerPathScript", (Join-Path $config.GetConfig('softVerPath') "scripts"))
+    $config.SetConfig("softVerScriptDetection", (Join-Path $config.GetConfig('softVerPathScript') "Detection_Script.ps1"))
+
+
+    $config.NewConfig("", "") | Out-Null
 
     Write-Host ("Version seleccionado: {0} - {1}" -f $config.GetConfig('softName'), $config.GetConfig('softVerName')) -ForegroundColor Green
     Write-Host ""
@@ -367,17 +379,130 @@ do {
 
     if ($queryPublicApp -eq $true)
     {
+        $infoJSONprop = @{
+            "DisplayName" = @{
+                "label"        = "Nuevo Nombre de la Aplicación"
+                "defaultValue" = ""
+                "required"     = $true
+            };
+            "Description" = @{
+                "label"        = "Nueva descripción de la aplicación"
+                "defaultValue" = ""
+                "required"     = $true
+            };
+            "Publisher" = @{
+                "label" = "Nuevo Editor"
+                "defaultValue" = ""
+            };
+            "Developer" = @{
+                "label"        = "Nuevo Desarrollador"
+                "defaultValue" = ""
+                "required"     = $true
+            };
+            "Owner" = @{
+                "label"        = "Nuevo Propietario"
+                "defaultValue" = ""
+                "required"     = $false
+            };
+            "InformationURL" = @{
+                "label"         = "Nueva URL de Información"
+                "defaultValue"  = ""
+                "allowedValues" = "onlyurl"
+                "required"      = $false
+            };
+            "PrivacyURL" = @{
+                "label"         = "Nueva URL de Privacidad"
+                "defaultValue"  = ""
+                "allowedValues" = "onlyurl"
+                "required"      = $false
+            };
+            "CompanyPortalFeaturedApp" = @{
+                "label"         = "¿Es una aplicación destacada en Company Portal? (true/false)"
+                "allowedValues" = @("True", "False");
+                "defaultValue"  = "False"
+                "required"      = $false
+            };
+            "InstallExperience" = @{
+                "label"         = "Experiencia de Instalación (system/user)"
+                "allowedValues" = @("system", "user");
+                "defaultValue"  = "system"
+                "required"      = $true
+            };
+            "RestartBehavior" =  @{
+                "label"         = "Comportamiento de Reinicio (allow/basedOnReturnCode/suppress/force)"
+                "allowedValues" = @("allow", "basedOnReturnCode", "suppress", "force");
+                "defaultValue"  = "suppress"
+                "required"      = $true
+            };
+            "InstallCommandLine" = @{
+                "label"        = "Nuevo Comando Instalacion"
+                "defaultValue" = "install.cmd"
+                "required"     = $true
+            };
+            "UninstallCommandLine" = @{
+                "label"        = "Nuevo Comando Desinstalacion"
+                "defaultValue" = "uninstall.cmd"
+                "required"     = $true
+            };
+            "Architecture" = @{
+                "label"        = "Nuevo Arquitectura soportada"
+                "allowedValues" = @("x86", "x64", "All");
+                "defaultValue" = "All"
+                "required"     = $true
+            };
+            "MinimumSupportedWindowsRelease" = @{
+                "label"        = "Nuevo Version Minima de Windows soportada"
+                "allowedValues" = @("W10_1607", "W10_1703", "W10_1709", "W10_1803", "W10_1809", "W10_1903", "W10_1909", "W10_2004", "W10_20H2", "W10_21H1", "W10_21H2", "W10_22H2", "W11_21H2", "W11_22H2");
+                "defaultValue" = "W10_1607"
+                "required"     = $true
+            };
+        }
+
+        $newInfoJSON    = $false
         $abortPublicApp = $false
+
         $config.SetConfig("softPathInfo", (Join-Path $config.GetConfig('softVerPath') "info.json"))
         if (-not (Test-Path -Path $config.GetConfig('softPathInfo') -PathType Leaf))
         {
             $config.SetConfig("softPathInfo", (Join-Path $config.GetConfig('softPath') "info.json"))
             if (-not (Test-Path -Path $config.GetConfig('softPathInfo') -PathType Leaf))
             {
-                Write-Host ("No se detecto info.json") -ForegroundColor Yellow
-                Write-Host ""
-                Start-Sleep -Seconds 1
-                $abortPublicApp = $true
+                Write-Host ("El archivo '{0}' no existe, creando..." -f $config.GetConfig('softPathInfo')) -ForegroundColor Yellow -NoNewline
+
+                $newInfoJSON = $true
+                $jsonDefault = @{
+                    "Remplaces" = @{}
+                    "Win32App" = @{}
+                }
+                foreach ($prop in $infoJSONprop.Keys)
+                {
+                    switch -regex ($prop) {
+                        "(?i)DisplayName" {
+                            $jsonDefault['Win32App'][$prop] = $config.GetConfig('softName')
+                        }
+                        default {
+                            $jsonDefault['Win32App'][$prop] = $infoJSONprop[$prop]["defaultValue"]
+                        }
+                    }
+                    Write-Host (".") -ForegroundColor Yellow -NoNewline
+                }
+                
+                Try
+                {
+                    $jsonDefaultString = $jsonDefault | ConvertTo-Json
+                    $jsonDefaultString | Set-Content -Path  $config.GetConfig('softPathInfo')
+                    Write-Host " [OK]" -ForegroundColor Green
+                    Write-Host ""
+                }
+                catch
+                {
+                    Write-Host " [Error]" -ForegroundColor Red
+                    # $errCode     = $_.Exception.HResult
+                    $errMsg      = $_.Exception.Message
+                    $errLocation = $_.InvocationInfo.PositionMessage
+                    Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
+                    $abortPublicApp = $true
+                }
             }
         }
 
@@ -391,6 +516,159 @@ do {
             {
                 try
                 {
+                    # Cargamos la configuracion de info.json para ver si tenemos que editarla
+                    $jsonContent = Get-Content -Path $config.GetConfig('softPathInfo') | Out-String
+                    $jsonObject = $jsonContent | ConvertFrom-Json
+    
+                    if ($newInfoJSON -eq $false)
+                    {
+                        Clear-Host
+                        Write-Host "Datos Actuales:" -ForegroundColor Yellow
+                        Write-Output $jsonObject.Win32App
+                        Write-Host ""
+                        $queryEditAppInfo = QueryYesNo -msg "¿Quieres editar algun dato? (Y/N)"
+                    }
+                    
+                    if ($queryEditAppInfo -eq $true -or $newInfoJSON -eq $true)
+                    {
+                        do {
+                            foreach ($propiedad in $infoJSONprop.Keys) {
+                                $label         = $propiedad
+                                $value         = ""
+                                $allowedValues = $null
+                                $defaultValue  = ""
+                                $required      = $false
+
+                                if ($infoJSONprop[$propiedad].ContainsKey("label"))
+                                {
+                                    $label = $infoJSONprop[$propiedad].label
+                                }
+                                if ($infoJSONprop[$propiedad].ContainsKey("allowedValues"))
+                                {
+                                    $allowedValues = $infoJSONprop[$propiedad].allowedValues
+                                }
+                                if ($infoJSONprop[$propiedad].ContainsKey("defaultValue"))
+                                {
+                                    $defaultValue = $infoJSONprop[$propiedad].defaultValue
+                                }
+                                if ($infoJSONprop[$propiedad].ContainsKey("required"))
+                                {
+                                    $required = $infoJSONprop[$propiedad].required
+                                }
+
+                                if ($jsonObject.Win32App.PSObject.Properties[$propiedad] )
+                                {
+                                    $value = $($jsonObject.Win32App.$propiedad)
+                                }
+                                else
+                                {
+                                    # # Convertir Win32App en un objeto PSObject para permitir propiedades dinámicas
+                                    # $jsonObject.Win32App = New-Object PSObject -Property $jsonObject.Win32App
+
+                                    # Agregar la nueva propiedad al objeto
+                                    $jsonObject.Win32App | Add-Member -MemberType NoteProperty -Name $propiedad -Value $defaultValue
+                                }
+
+
+                                do {
+                                    Clear-Host
+                                    Write-Host ("{0}:" -f $label) -ForegroundColor Green
+                                    if ($required -eq $true)
+                                    {
+                                        Write-Host ("Campo Requeriado!") -ForegroundColor Yellow
+                                    }
+                                    if ($null -ne $allowedValues)
+                                    {
+                                        $allowedValuesString = ""
+                                        if ($allowedValues -is [string])
+                                        {
+                                            $allowedValuesString = $allowedValues
+                                        }
+                                        else
+                                        {
+                                            $allowedValuesString = $($allowedValues -join ', ')
+                                        }
+                                        Write-Host ("Valores permitidos: {0}" -f $allowedValuesString ) -ForegroundColor Yellow
+                                    }
+                                    Write-Host ("Valor   ({0})" -f $value) -ForegroundColor Green
+                                    Write-Host ("Default ({0})" -f $defaultValue) -ForegroundColor Green
+                                    Write-Host ""
+                                    $newValue = Read-Host ("Nuevo Valor, !! para valor por defecto")
+                                    
+                                    if ($newValue -eq "!!")
+                                    {
+                                        $newValue = $defaultValue
+                                    }
+                                    elseif ($required -eq $true)
+                                    {
+                                        if ([string]::IsNullOrWhiteSpace($newValue) -and [string]::IsNullOrWhiteSpace($value))
+                                        {
+                                            Write-Host ("Dato requerido!") -ForegroundColor Red
+                                            Continue
+                                        }
+                                        elseif ([string]::IsNullOrWhiteSpace($newValue) -and -not [string]::IsNullOrWhiteSpace($value))
+                                        {
+                                            $newValue = $value
+                                        }
+                                    }
+                                    elseif (-not [string]::IsNullOrWhiteSpace($allowedValues))
+                                    {
+                                        if ($allowedValues -eq "onlyurl")
+                                        {
+                                            if (-not [string]::IsNullOrWhiteSpace($newValue))
+                                            {
+                                                $urlOk = Get-ValidarURL($newValue)
+                                                if ($urlOk -eq $false) 
+                                                {
+                                                    Write-Host ("Url No valida!") -ForegroundColor Red
+                                                    Continue
+                                                }
+                                            }
+                                        }
+                                        elseif (-not [string]::IsNullOrWhiteSpace($newValue) -and $newValue -notin $allowedValues)
+                                        {
+                                            Write-Host ("Valor ({0}) no permitido. Los valores permitidos son: {1}" -f $newValue, $($allowedValues -join ', ') ) -ForegroundColor Red
+                                            Continue
+                                        }
+                                    }
+                                    if (-not [string]::IsNullOrWhiteSpace($newValue))
+                                    {
+                                        $value = $newValue
+                                    }
+                                    Write-Host ""
+                                    break
+                                } while ($true)
+                                
+                                # Actualizar la propiedad en el objeto JSON
+                                $jsonObject.Win32App.$propiedad = $value
+                            }
+
+                            Clear-Host
+                            Write-Host "Datos Nuevos:" -ForegroundColor Yellow
+                            Write-Output $jsonObject.Win32App
+                            Write-Host ""
+
+                            $queryEditAppInfoNewOK = QueryYesNo -msg "¿Los datos son correcots, Sí para guardar, No para volver a editar? (Y/N)"
+                            if ($queryEditAppInfoNewOK -eq $true)
+                            {
+                                Write-Host ("Guardando cambios...") -ForegroundColor Yellow -NoNewline
+                                $jsonContent = $jsonObject | ConvertTo-Json
+                                $jsonContent | Set-Content -Path $config.GetConfig('softPathInfo')
+                                Write-Host (" [OK]") -ForegroundColor Green
+                                break;
+                            }
+
+                        } while ($true)
+                    }
+                    $jsonContent = $null
+                    $jsonObject  = $null
+    
+                  
+
+
+
+
+                    # Cargamos la configuracion de info.json
                     $infoJsonContent = Get-Content -Raw -Path $config.GetConfig('softPathInfo') | ConvertFrom-Json
                     if ($infoJsonContent.PSObject.Properties.Name -contains "Win32App")
                     {
@@ -424,14 +702,28 @@ do {
             $Win32AppArgs['FilePath'] = $config.GetConfig("intunewinPathSoftware")
             if (-not (Test-Path -Path $Win32AppArgs['FilePath'] -PathType Leaf))
             {
-                Write-Host ("No se ha encontrado el archivo [{0}]" -f $Win32AppArgs['FilePath']) -ForegroundColor Yellow
+                Write-Host ("No se ha encontrado el archivo [{0}]" -f $Win32AppArgs['FilePath']) -ForegroundColor Red
                 Write-Host ""
-                Start-Sleep -Seconds 1
+                Start-Sleep -Seconds 2
                 $abortPublicApp = $true
+                pause
             }
             else
             {
                 # $IntuneWinMetaData = Get-IntuneWin32AppMetaData -FilePath $Win32AppArgs['FilePath']
+            }
+        }
+
+        # Check Script Detecction
+        if ($abortPublicApp -eq $false)
+        {
+            if (-not (Test-Path -Path $config.GetConfig("softVerScriptDetection") -PathType Leaf))
+            {
+                Write-Host ("No se ha encontrado el script de deteccion [{0}]!" -f $config.GetConfig("softVerScriptDetection")) -ForegroundColor Red
+                Write-Host ""
+                Start-Sleep -Seconds 2
+                $abortPublicApp = $true
+                pause
             }
         }
 
@@ -452,12 +744,10 @@ do {
             $Win32AppArgs['AppVersion']  = $config.GetConfig('softVerName')
             # $Win32AppArgs['DisplayName'] = "{0} {1}" -f $Win32AppArgs['DisplayName'], $Win32AppArgs['AppVersion']
 
-            
             $NewAppDipalyName = $Win32AppArgs['DisplayName']
             $NewAppVersion    = $Win32AppArgs['AppVersion']
             $Win32AppLatest   = Get-IntuneWin32App -DisplayName $NewAppDipalyName | Where-Object { $_.displayVersion -eq $NewAppVersion }
 
-           
             if ($null -eq $Win32AppLatest)
             {
                 # Set Logo Path
@@ -481,16 +771,23 @@ do {
                 }
 
 
-
                 #Create Requirement Rule
-                $Win32AppArgs['RequirementRule'] = New-IntuneWin32AppRequirementRule -Architecture x64 -MinimumSupportedWindowsRelease "W10_21H1"
-
+                $Win32AppRequirementRule = @{
+                    'Architecture'                   = $Win32AppArgs['Architecture']
+                    'MinimumSupportedWindowsRelease' = $Win32AppArgs['MinimumSupportedWindowsRelease']
+                }
+                $Win32AppArgs['RequirementRule'] = New-IntuneWin32AppRequirementRule @Win32AppRequirementRule
+                $Win32AppArgs.Remove("Architecture")
+                $Win32AppArgs.Remove("MinimumSupportedWindowsRelease")
 
 
                 # detection rules
-                $DetectionRuleScriptFile = "D:\Source\intunewin_generator\Software\test1\upload\SEH_UTN_Manager_Detection_Method_3.3.10.ps1"
-                $Win32AppArgs['DetectionRule'] = New-IntuneWin32AppDetectionRuleScript -ScriptFile $DetectionRuleScriptFile -EnforceSignatureCheck $false -RunAs32Bit $false
-
+                $Win32AppDetectionRuleScript = @{
+                    'ScriptFile'            = $config.GetConfig("softVerScriptDetection")
+                    'EnforceSignatureCheck' = $false
+                    'RunAs32Bit'            = $false
+                }
+                $Win32AppArgs['DetectionRule'] = New-IntuneWin32AppDetectionRuleScript @Win32AppDetectionRuleScript                
 
 
                 # Create custom return code
@@ -502,7 +799,7 @@ do {
                 Add-IntuneWin32App @Win32AppArgs
                 Write-Host ("Publicacion completa!" -f $OldAppVersion, $NewAppVersion) -ForegroundColor Green
                 Write-Host ""
-                Start-Sleep -Seconds 1
+                Start-Sleep -Seconds 2
 
 
                 # Update Old Version
@@ -525,7 +822,6 @@ do {
                             Write-Host ""
                             Get-IntuneWin32App -DisplayName $NewAppDipalyName | Where-Object { $_.displayVersion -eq $NewAppVersion } | Select-Object -Property displayName, displayVersion, id, createdDateTime | Sort-Object -Property createdDateTime
                             Write-Host ""
-                            pause
                         }
                     }
                     if ($AllowSupersedence -eq $true)
@@ -536,9 +832,9 @@ do {
                         # Remove-IntuneWin32AppSupersedence -ID $Win32AppLatest.id -Verbose
 
                         Write-Host ("Sustitucion completa!" -f $OldAppVersion, $NewAppVersion) -ForegroundColor Green
-                        Write-Host ""
-                        Start-Sleep -Seconds 1
+                        Write-Host ""        
                     }
+                    Start-Sleep -Seconds 2
                 }
             }
             else
@@ -562,7 +858,7 @@ do {
                         Write-Host ("Actualizando PackageFile abortada, no se detecto ID!") -ForegroundColor Red
                     }
                     Write-Host ""
-                    Start-Sleep -Seconds 1
+                    Start-Sleep -Seconds 2
                 }
                 else
                 {
@@ -606,10 +902,12 @@ do {
 
                     Write-Host ("Formato no valido [{0}] en la deteccion de si existe el pakete en Intune!" -f $formatoResult) -ForegroundColor Red
                     Write-Host ""
-                    Start-Sleep -Seconds 1
-                    pause
+                    Start-Sleep -Seconds 2
                 }
             }
+
+            Start-Sleep -Seconds 2
+            pause
         }
     }
 
