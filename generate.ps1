@@ -52,32 +52,45 @@ if (-not $isLoad)
 
 
 
-$modulesDep        = @("MSGraph", "IntuneWin32App", "AzureAD", "PSIntuneAuth")
-$modulesAvailables = Get-Module -ListAvailable
+
+$modulesDep = @("MSGraph", "IntuneWin32App", "AzureAD", "PSIntuneAuth")
 foreach ($module in $modulesDep) {
     
-    if (-not ($modulesAvailables | Where-Object { $_.Name -eq $module }))
+    Write-Host ("Comprobando modulo '{0}'..." -f $module) -ForegroundColor Yellow -NoNewline
+    if (-not (Get-InstalledModule -Name $module -ErrorAction SilentlyContinue))
     {
-        Write-Host ("Modulo '{0}' NO detectado!" -f $module) -ForegroundColor Yellow
+        Write-Host (" [No Instalado]") -ForegroundColor Red
         $installModuleQuery = QueryYesNo -msg ("¿Deseas instalar el módulo '{0}'? (Y/N)" -f $module)
         if ($installModuleQuery -eq $false)
         {
-            Write-Host ("El modulo '{0}' es necesario!" -f $module) -ForegroundColor Red
+            Write-Host ("Abortamos: El modulo '{0}' es necesario!" -f $module) -ForegroundColor Red
             Write-Host ""
             Exit 1
         }
-        Write-Host ("Instalando el modulo '{0}'..." -f $module) -ForegroundColor Yellow
-        Install-Module -Name $module -Scope CurrentUser -Force
-        Write-Host ("Modulo '{0}' instalado!" -f $module) -ForegroundColor Green
+        Write-Host ("Instalando el modulo '{0}'..." -f $module) -ForegroundColor Yellow  -NoNewline
+        try {
+            Install-Module -Name $module -Scope CurrentUser -Force -ErrorAction Stop
+        }
+        catch
+        {
+            Write-Host (" [Error]") -ForegroundColor Red
+            Write-Host ""
+            # $errCode     = $_.Exception.HResult
+            $errMsg      = $_.Exception.Message
+            $errLocation = $_.InvocationInfo.PositionMessage
+            Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
+            Write-Host ""
+            Exit 1
+        }
+        Write-Host (" [OK]") -ForegroundColor Green
         Write-Host ""
     }
     else
     {
-        Write-Host ("Modulo '{0}' detectado - OK!" -f $module) -ForegroundColor Green
+        Write-Host (" [OK]") -ForegroundColor Green
     }
 }
 Write-Host ""
-
 
 
 
@@ -85,7 +98,11 @@ Write-Host ""
 
 #Connect to Graph API - Commented out if running from master file. if running individually, uncomment below line.
 $TenantID = Read-Host "Enter your TenantID (i.e. - domain.com or domain.onmicrosoft.com)"
-
+$TenantConnection = ConnectTenantMSIntune -TenantID $TenantID
+if ($TenantConnection -eq $false)
+{
+    Exit 1
+}
 
 
 # Crear Objetos Globales
@@ -341,8 +358,13 @@ do {
 
     # --- INI --- Seccion Publica App
 
-    $queryPublicApp = QueryYesNo -msg "¿Quieres Publicar la App? (Y/N)"
-    Write-Host ""
+    $queryPublicApp = $false
+    if ($TenantID -ne "")
+    {
+        $queryPublicApp = QueryYesNo -msg "¿Quieres Publicar la App? (Y/N)"
+        Write-Host ""
+    }
+
     if ($queryPublicApp -eq $true)
     {
         $abortPublicApp = $false
@@ -416,24 +438,11 @@ do {
         # Connect Tenant
         if ($abortPublicApp -eq $false)
         {
-            Write-Host ("Conectando con el Tenant...") -ForegroundColor Green
-            try
+            $TenantConnection = ConnectTenantMSIntune -TenantID $TenantID
+            if ($TenantConnection -eq $false)
             {
-                #Pre-reqs = Install-Module MSGraph, IntuneWin32App, AzureAD, and PSIntuneAuth
-                Connect-MSIntuneGraph -TenantID $TenantID
+                $abortPublicApp = $false
             }
-            catch
-            {
-                # $errCode     = $_.Exception.HResult
-                $errMsg      = $_.Exception.Message
-                $errLocation = $_.InvocationInfo.PositionMessage
-                Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
-                Start-Sleep -Seconds 2
-                $abortPublicApp = $true
-                pause
-                Continue
-            }
-            Start-Sleep -Seconds 2
         }
         
         # Public App

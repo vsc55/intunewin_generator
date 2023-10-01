@@ -19,6 +19,66 @@ function GetAsterisksLine($text) {
     return ("*" * $lineLength)
 }
 
+function RefreshMSIntune {
+    if (Test-AccessToken -eq $false)
+    {
+        Connect-MSIntuneGraph -TenantID $Global:AccessTokenTenantID -Refresh
+    }
+}
+
+function ConnectTenantMSIntune {
+    param(
+        [string]$TenantID = ""
+    )
+    #Pre-reqs = Install-Module MSGraph, IntuneWin32App, AzureAD, and PSIntuneAuth
+
+    if ($TenantID -ne "")
+    {
+        Write-Host ("Conectando con el Tenant...") -ForegroundColor Green
+        try
+        {
+            $IntuneConnectWarnings = @()
+            Connect-MSIntuneGraph -TenantID $TenantID  -WarningAction SilentlyContinue -WarningVariable IntuneConnectWarnings
+            if ($IntuneConnectWarnings.Count -gt 0)
+            {
+                foreach ($IntuneConnectWarning in $IntuneConnectWarnings)
+                {
+                    switch -Regex ($IntuneConnectWarning) {
+                        ".*User canceled authentication.*" {
+                            # An error occurred while attempting to retrieve or refresh access token. Error message: User canceled authentication.
+                            Write-Host ("Error: Se canceló la autenticación durante la conexión a Microsoft Intune.") -ForegroundColor Red
+                            Write-Host ""
+                            return $false
+                        }
+                        ".*Error message:*" {
+                            Write-Host ("Error: {0}" -f $IntuneConnectWarning) -ForegroundColor Red
+                            Write-Host ""
+                            return $false
+                        }
+                        default {
+                            Write-Host ("Advertencia: {0}" -f $IntuneConnectWarning) -ForegroundColor Yellow
+                            Continue
+                        }
+                    }
+                }
+                Write-Host ""
+            }
+        }
+        catch
+        {
+            # $Error[0].Exception.Message
+            # $errCode     = $_.Exception.HResult
+            $errMsg      = $_.Exception.Message
+            $errLocation = $_.InvocationInfo.PositionMessage
+            Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
+            Start-Sleep -Seconds 2
+            return $false
+        }
+        Start-Sleep -Seconds 2
+    }
+    return $true
+}
+
 function QueryYesNo {
     param(
         [string]$msg,
