@@ -1,0 +1,36 @@
+-----------------------------------------------------------
+Software
+	- Nombre del Software
+		- info.json
+		- logo\logo.png
+		- out
+		- source
+			- version
+				- cat
+				- src
+				- logo\logo.png
+-----------------------------------------------------------
+
+
+Ejemplo:
+-----------------------------------------------------------
+Software
+	- Openshot
+		- info.json
+		- logo\logo.png
+		- out
+		- source
+			- 3.1.1.0
+				- cat
+				- src
+-----------------------------------------------------------
+
+info.json: Este archivo contiene la información que se usara para crear la app en intune, si no existe se omitirá el proceso de publicación de la app.
+
+logo.png: Este archivo lo podemos definir en dos zonas. En el directorio raíz de la app en la carpeta logo, o en la carpeta de la versión en la carpeta logo.
+	  El funcionamiento es el siguiente. El programa buscara en primer lugar si existe el archivo logo.png en la carpeta de la versión, si no lo encuentra pasara 
+	  a buscar en la carpeta raíz de la app. Si no existe en ninguno de los dos no se creará logo.
+
+out: salida de los archivos intunewin
+
+source: fuentes de las distintas versiones de los programas y scripts de instalación.
