@@ -58,6 +58,7 @@ if ($MSIntune.CheckModulesDeps($true, $false) -eq $false)
 {
     Write-Host "Faltan dependencias, se desactiva soporte Intune!!" -ForegroundColor Yellow
     $MSIntune.SetEnabled($false)
+    pause
 }
 else
 {
@@ -65,6 +66,7 @@ else
     $MSIntune.SetTenantID($TenantID)
     $MSIntune.ConnectMSIntune($true)  | Out-Null
 }
+Start-Sleep -Seconds 2
 
 
 # Crear Objetos Globales
@@ -116,6 +118,7 @@ else
 {
     Write-Host "El archivo de configuracion no existe." -ForegroundColor Yellow
 }
+Start-Sleep -Seconds 2
 Write-Host ""
 
 
@@ -168,6 +171,7 @@ if (-not $downloadResult)
 Remove-Variable -Name "downloader" -Scope Global
 $config.SetConfig('intuneWinAppUtilPath', $intuneWinAppUtilPath)
 Write-Host ""
+Start-Sleep -Seconds 2
 
 
 
@@ -326,24 +330,27 @@ do {
     }
 
 
+    
 
-
-    # --- INI --- Seccion Publica App
-
-    $queryPublicApp = $false
-    if ($TenantID -ne "")
+    # --- INI --- Seccion Publish App
+    if ($MSIntune.GetIsEnabled())
     {
-        $queryPublicApp = QueryYesNo -msg "¿Quieres Publicar la App en Intune? (Y/N)"
+        $queryPublishApp = $false
+        # $queryPublishApp = QueryYesNo -msg "You want to Publish the App in Intune?(Y/N) -ForegroundColor Green
+
+        $queryPublishApp = QueryYesNo -msg $(Write-Host "(Y/N)" -ForegroundColor Yellow -NoNewline $(Write-Host "You want to Publish the App in Intune? " -ForegroundColor Green -NoNewLine))
         Write-Host ""
+ 
+        if ($queryPublishApp -eq $true)
+        {
+            $PathSoftware = Join-Path $PSScriptRoot "Software"
+            $MSIntune.SetRootPathSoftware($PathSoftware)
+            if ($MSIntune.PublishSoftware($config.GetConfig('softName'), $config.GetConfig('softVerName'), $config.GetConfig("intunewinPathSoftware")) -eq $false)
+            {
+                pause
+            }
+        }
     }
-
-    if ($queryPublicApp -eq $true)
-    {
-        $PathSoftware = Join-Path $PSScriptRoot "Software"
-        $MSIntune.SetRootPathSoftware($PathSoftware)
-        $MSIntune.PublicSoftware($config.GetConfig('softName'), $config.GetConfig('softVerName'), $config.GetConfig("intunewinPathSoftware"))
-    }
-
     # --- END --- Seccion Publica App
 
 } while ($true)

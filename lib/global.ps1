@@ -23,19 +23,27 @@ function GetAsterisksLine($text) {
 function QueryYesNo {
     param(
         [string]$msg,
-        [string]$optYes = "^(si|sí|s|yes|y)$",
-        [string]$optNo  = "^(no|n)$"
+        [string]$OptionsYes            = "^(si|sí|s|yes|y)$",
+        [string]$OptionsNo             = "^(no|n)$",
+        [ConsoleColor]$ForegroundColor = "White",
+        [bool]$OptionNotFoundIsFalse   = $false
     )
     do {
-        $respuesta = Read-Host $msg
+        # $respuesta = Read-Host $msg
+        $respuesta = $(Write-Host $msg -ForegroundColor $ForegroundColor -NoNewLine; Read-Host)
+
         switch -Regex ($respuesta.ToLower()) {
-            $optYes {
+            $OptionsYes {
                 return $true
             }
-            $optNo {
+            $OptionsNo {
                 return $false
             }
             default {
+                if ($OptionNotFoundIsFalse -eq $true)
+                {
+                    return $false
+                }
                 Write-Host "Opcion no valida!" -ForegroundColor Red
                 Start-Sleep -Seconds 2
             }

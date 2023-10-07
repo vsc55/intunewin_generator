@@ -11,121 +11,176 @@ if (($null -eq $function:CheckHack) -or (-not (CheckHack)))
 
 class intuneWin32AppCustom {
 
-    [string]$TenantID = ""
-    [bool]$enabled    = $true
+    [string]$pathRootSoftware = ""
 
-    [bool]$TenantConnection = $false
+    [string]$TenantID         = ""
+    [bool]$TenantConnection   = $false
 
-    $InfoPublicSoftwareProp = @("label", "allowedValues", "defaultValue", "required")
+    [bool]$enabled            = $true
 
-    [Hashtable]$InfoPublicSoftware = @{
+    [string]$PathSoftSource   = "source"
+    [string]$PathSoftLogo     = "logo"
+    [string]$PathSoftScript   = "scripts"
+
+    [string]$NameFileLogo     = "Logo.png"
+    [string]$NameFileDetect   = "Detection_Script.ps1"
+    [string]$NameFileInfoJSON = "info.json"
+
+
+    [string[]]$necessaryModules       = @("MSGraph", "IntuneWin32App", "AzureAD", "PSIntuneAuth")
+    [string[]]$InfoPublishSoftwareProp = @("label", "allowedValues", "defaultValue", "required")
+
+    [Hashtable]$InfoPublishSoftware = @{
         "DisplayName" = @{
             "label"         = [string]"Nuevo Nombre de la Aplicación"
             "defaultValue"  = [string]""
             "required"      = $true
-        };
+        }
         "Description" = @{
             "label"         = [string]"Nueva descripción de la aplicación"
             "defaultValue"  = [string]""
             "required"      = $true
-        };
+        }
         "Publisher" = @{
             "label"         = [string]"Nuevo Publicador"
             "defaultValue"  = [string]""
             "required"      = $true
-        };
+        }
         "Developer" = @{
             "label"         = [string]"Nuevo Desarrollador"
             "defaultValue"  = [string]""
             "required"      = $false
-        };
+        }
         "Owner" = @{
             "label"         = [string]"Nuevo Propietario"
             "defaultValue"  = [string]""
             "required"      = $false
-        };
+        }
         "InformationURL" = @{
             "label"         = [string]"Nueva URL de Información"
             "defaultValue"  = [string]""
             "allowedValues" = [string]"onlyurl"
             "required"      = $false
-        };
+        }
         "PrivacyURL" = @{
             "label"         = [string]"Nueva URL de Privacidad"
             "defaultValue"  = [string]""
             "allowedValues" = [string]"onlyurl"
             "required"      = $false
-        };
+        }
         "CompanyPortalFeaturedApp" = @{
             "label"         = [string]"¿Es una aplicación destacada en Company Portal? (true/false)"
             "allowedValues" = @("True", "False");
             "defaultValue"  = [string]"False"
             "required"      = $false
-        };
+        }
         "InstallExperience" = @{
             "label"         = [string]"Experiencia de Instalación (system/user)"
             "allowedValues" = @("system", "user");
             "defaultValue"  = [string]"system"
             "required"      = $true
-        };
+        }
         "RestartBehavior" =  @{
             "label"         = [string]"Comportamiento de Reinicio (allow/basedOnReturnCode/suppress/force)"
             "allowedValues" = @("allow", "basedOnReturnCode", "suppress", "force");
             "defaultValue"  = [string]"suppress"
             "required"      = $true
-        };
+        }
         "InstallCommandLine" = @{
             "label"         = [string]"Nuevo Comando Instalacion"
             "defaultValue"  = [string]"install.cmd"
             "required"      = $true
-        };
+        }
         "UninstallCommandLine" = @{
             "label"         = [string]"Nuevo Comando Desinstalacion"
             "defaultValue"  = [string]"uninstall.cmd"
             "required"      = $true
-        };
+        }
         "Architecture" = @{
             "label"         = [string]"Nuevo Arquitectura soportada"
             "allowedValues" = @("x86", "x64", "All");
             "defaultValue"  = [string]"All"
             "required"      = $true
-        };
+        }
         "MinimumSupportedWindowsRelease" = @{
             "label"         = [string]"Nuevo Version Minima de Windows soportada"
             "allowedValues" = @("W10_1607", "W10_1703", "W10_1709", "W10_1803", "W10_1809", "W10_1903", "W10_1909", "W10_2004", "W10_20H2", "W10_21H1", "W10_21H2", "W10_22H2", "W11_21H2", "W11_22H2");
             "defaultValue"  = [string]"W10_1607"
             "required"      = $true
-        };
+        }
     }
 
-    [string]$pathRootSoftware = ""
+    
 
-
-
-
-
-
+    
     intuneWin32AppCustom([string] $NewTenantID = "") {
-        $this.SetTenantID($NewTenantID)
-        # $this.CheckModulesDeps()
-        
+        <#
+        .SYNOPSIS
+            Constructor de la clase IntuneWin32AppCustom.
+
+        .DESCRIPTION
+            Este constructor inicializa una nueva instancia de la clase IntuneWin32AppCustom.
+
+        .PARAMETER NewTenantID
+            Parámetro opcional que representa el ID del inquilino. Por defecto, se establece en una cadena vacía ("").
+
+        .NOTES
+            Este constructor se utiliza para crear una nueva instancia de la clase IntuneWin32AppCustom.
+            Inicializa la conexión al inquilino como deshabilitada, establece el ID del inquilino, habilita la instancia y establece la ruta raíz del software en una cadena vacía.
+        #>
+
         $this.TenantConnection  = $false
 
+        $this.SetTenantID($NewTenantID)
         $this.SetEnabled($true)
         $this.SetRootPathSoftware("")
     }
 
 
 
-
-
+    
     [void] SetEnabled([bool] $newEnabled) {
+        <#
+        .SYNOPSIS
+            Establece el estado habilitado del objeto.
+
+        .DESCRIPTION
+            Este método permite establecer el estado habilitado del objeto.
+
+        .PARAMETER newEnabled
+            Parámetro que indica el nuevo estado habilitado (booleano) del objeto.
+
+        .NOTES
+            El método no tiene salida, simplemente actualiza el estado habilitado del objeto.
+        #>
         $this.enabled = $newEnabled
     }
+
     [bool] GetEnabled () {
+        <#
+        .SYNOPSIS
+            Obtiene el estado habilitado actual del objeto.
+
+        .DESCRIPTION
+            Este método devuelve el estado habilitado actual del objeto.
+
+        .OUTPUTS
+            Devuelve el estado habilitado (booleano) del objeto.
+        #>
         return $this.enabled
     }
+
     [bool] GetIsEnabled () {
+        <#
+        .SYNOPSIS
+            Verifica si el objeto está habilitado.
+
+        .DESCRIPTION
+            Este método verifica si el objeto está habilitado. Retorna $true si el objeto tiene un ID del inquilino y está habilitado, de lo contrario, retorna $false.
+
+        .OUTPUTS
+            Devuelve el estado habilitado (booleano) del objeto.
+        #>
         if ([string]::IsNullOrEmpty($this.GetTenantID()))
         {
             return $false
@@ -135,23 +190,62 @@ class intuneWin32AppCustom {
 
 
 
-
-
-
+    
     [string] GetTenantID() {
+        <#
+        .SYNOPSIS
+            Obtiene el ID del inquilino.
+
+        .DESCRIPTION
+            Este método devuelve el ID del inquilino actual.
+
+        .OUTPUTS
+            Devuelve el ID del inquilino como una cadena de texto.
+        #>
         return $this.TenantID
     }
+
     [void] SetTenantID([string] $NewTenantID) {
+        <#
+        .SYNOPSIS
+            Establece el ID del inquilino.
+
+        .DESCRIPTION
+            Este método permite establecer el ID del inquilino con un nuevo valor proporcionado.
+
+        .PARAMETER NewTenantID
+            Parámetro que representa el nuevo ID del inquilino.
+
+        .NOTES
+            El método no tiene salida y simplemente actualiza el ID del inquilino.
+        #>
         $this.TenantID = $NewTenantID
     }
 
 
 
 
-
-
     [bool] CheckModulesDeps([bool] $showMsg = $true, [bool] $yesInstall = $false){
+        <#
+        .SYNOPSIS
+            Verifica las dependencias de los módulos necesarios.
 
+        .DESCRIPTION
+            Este método verifica si los módulos especificados están instalados y, si no lo están,
+            ofrece al usuario la opción de instalarlos. Devuelve $true si todas las dependencias están
+            satisfechas, de lo contrario, devuelve $false.
+
+        .PARAMETER showMsg
+            Parámetro opcional que indica si mostrar mensajes durante la verificación de dependencias.
+            Por defecto, se establece en $true.
+
+        .PARAMETER yesInstall
+            Parámetro opcional que indica si instalar automáticamente los módulos faltantes.
+            Por defecto, se establece en $false.
+
+        .OUTPUTS
+            Devuelve $true si todas las dependencias están satisfechas, de lo contrario, devuelve $false.
+        #>
         $dataReturn = $true
 
         $installModuleQuery = $null
@@ -161,61 +255,64 @@ class intuneWin32AppCustom {
         }
 
 
-        $modulesDep = @("MSGraph", "IntuneWin32App", "AzureAD", "PSIntuneAuth")
         if ($showMsg) {
             Clear-Host
-            Write-Host ("Comprobando dependencias:") -ForegroundColor Yellow
+            Write-Host ("Checking Dependencies...") -ForegroundColor Yellow
         }
-        foreach ($module in $modulesDep) {
+        foreach ($module in $this.necessaryModules) {
 
             if ($showMsg) {
-                Write-Host ("Comprobando modulo '{0}'..." -f $module) -ForegroundColor Yellow -NoNewline
+                Write-Host ("- Module '{0}'..." -f $module) -ForegroundColor Yellow -NoNewline
             }
             if (-not (Get-InstalledModule -Name $module -ErrorAction SilentlyContinue))
             {
                 if ($showMsg) {
-                    Write-Host (" [No Instalado]") -ForegroundColor Red
+                    Write-Host (" [X]") -ForegroundColor Red
                 }
 
                 if ($null -eq $installModuleQuery)
                 {
-                    $installModuleQuery = QueryYesNo -msg ("¿Deseas instalar el módulo '{0}'? (Y/N)" -f $module)
+                    Write-Host ""
+                    $installModuleQuery = QueryYesNo -msg ("Do you want to Install the '{0}' Module? (Y/N)" -f $module) -ForegroundColor DarkYellow
                 }
                 if ($installModuleQuery -eq $false)
                 {
                     if ($showMsg) {
-                        Write-Host ("Abortamos: El modulo '{0}' es necesario!" -f $module) -ForegroundColor Red
+                        Write-Host ("Abort: Module '{0}' is necessary!" -f $module) -ForegroundColor Red
                     }
                     $dataReturn = $false
                     break
                 }
                 if ($showMsg) {
-                    Write-Host ("Instalando el modulo '{0}'..." -f $module) -ForegroundColor Yellow  -NoNewline
+                    Write-Host ("Installing Module '{0}'..." -f $module) -ForegroundColor Yellow  -NoNewline
                 }
                 try {
                     Install-Module -Name $module -Scope CurrentUser  -AcceptLicense -Force -ErrorAction Stop
                 }
                 catch
                 {
-                    # $errCode     = $_.Exception.HResult
-                    $errMsg      = $_.Exception.Message
-                    $errLocation = $_.InvocationInfo.PositionMessage
-                    if ($showMsg) {
-                        Write-Host (" [Error]") -ForegroundColor Red
-                        Write-Host ""
-                        Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
-                    }
                     $dataReturn = $false
+
+                    if ($showMsg)
+                    {
+                        $errCode     = $_.Exception.HResult
+                        $errMsg      = $_.Exception.Message
+                        $errLocation = $_.InvocationInfo.PositionMessage
+
+                        Write-Host (" [X]") -ForegroundColor Red
+                        Write-Host ""
+                        Write-Host ("Code Error '{0}' - Error: {1} {2}" -f $errCode, $errMsg, $errLocation) -ForegroundColor Red
+                    }
                     break
                 }
                 if ($showMsg) {
-                    Write-Host (" [OK]") -ForegroundColor Green
+                    Write-Host (" [√]") -ForegroundColor Green
                 }
             }
             else
             {
                 if ($showMsg) {
-                    Write-Host (" [OK]") -ForegroundColor Green
+                    Write-Host (" [√]") -ForegroundColor Green
                 }
             }
         }
@@ -228,27 +325,37 @@ class intuneWin32AppCustom {
 
 
 
-
-
     [bool] ConnectMSIntune([bool] $showMsg = $true) {
+        <#
+        .SYNOPSIS
+            Conecta con Microsoft Intune.
+
+        .DESCRIPTION
+            Este método intenta establecer una conexión con Microsoft Intune y devuelve verdadero si la conexión es
+            exitosa y si Intune está habilitado. Devuelve falso si la conexión falla o si Intune está deshabilitado.
+
+        .PARAMETER showMsg
+            Parámetro opcional que indica si mostrar mensajes durante el proceso de conexión.
+            Por defecto, se establece en $true.
+
+        .OUTPUTS
+            Devuelve $true si la conexión es exitosa y si Intune está habilitado, de lo contrario, devuelve $false.
+        #>
         $dataReturn = $true
         if ($this.GetIsEnabled() -eq $false)
         {
-            if ($showMsg -eq $true)
+            if ($showMsg)
             {
-                Write-Host "MSIntune esta desactivado!!" -ForegroundColor Yellow
+                Write-Host "MSIntune is disabled!!" -ForegroundColor Yellow
             }
             $dataReturn = $false
         }
         else
         {
-            #Connect to Graph API - Commented out if running from master file. if running individually, uncomment below line.
-            # $this.TenantConnection = ConnectTenantMSIntune -TenantID $this.Get-TenantID()
-
-            if ($showMsg -eq $true) {
-                Write-Host ("Conectando con el Tenant...") -ForegroundColor Green -NoNewline
+            if ($showMsg)
+            {
+                Write-Host ("Connecting with the Tenant...") -ForegroundColor Green -NoNewline
             }
-            
             try
             {
                 $IntuneConnectWarnings = @()
@@ -256,7 +363,7 @@ class intuneWin32AppCustom {
                 $this.TenantConnection = $true
                 if ($IntuneConnectWarnings.Count -gt 0)
                 {
-                    if ($showMsg -eq $true) {
+                    if ($showMsg) {
                         Write-Host (" [!!]") -ForegroundColor Yellow
                     }
                     :msgloop foreach ($IntuneConnectWarning in $IntuneConnectWarnings)
@@ -264,23 +371,22 @@ class intuneWin32AppCustom {
                         switch -Regex ($IntuneConnectWarning) {
                             ".*User canceled authentication.*" {
                                 # An error occurred while attempting to retrieve or refresh access token. Error message: User canceled authentication.
-
-                                if ($showMsg -eq $true) {
-                                    Write-Host ("Error: Se canceló la autenticación durante la conexión a Microsoft Intune.") -ForegroundColor Red
+                                if ($showMsg) {
+                                    Write-Host ("Error: Authentication was canceled while connecting to Microsoft Intune.") -ForegroundColor Red
                                 }
                                 $this.TenantConnection = $false
                                 break msgloop
                             }
                             ".*Error message:*" {
-                                if ($showMsg -eq $true) {
+                                if ($showMsg) {
                                     Write-Host ("Error: {0}" -f $IntuneConnectWarning) -ForegroundColor Red
                                 }
                                 $this.TenantConnection = $false
                                 break msgloop
                             }
                             default {
-                                if ($showMsg -eq $true) {   
-                                    Write-Host ("Advertencia: {0}" -f $IntuneConnectWarning) -ForegroundColor Yellow
+                                if ($showMsg) {
+                                    Write-Host ("Warning: {0}" -f $IntuneConnectWarning) -ForegroundColor Yellow
                                 }
                                 Continue
                             }
@@ -289,33 +395,36 @@ class intuneWin32AppCustom {
                 }
                 else
                 {
-                    if ($showMsg -eq $true) {
+                    if ($showMsg) {
                         Write-Host (" [OK]") -ForegroundColor Green
                     }
-                }
-                if ($showMsg -eq $true) {
-                    Write-Host ""
                 }
             }
             catch
             {
-                # $Error[0].Exception.Message
-                # $errCode     = $_.Exception.HResult
-                $errMsg      = $_.Exception.Message
-                $errLocation = $_.InvocationInfo.PositionMessage
-                Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
-                Start-Sleep -Seconds 2
-                
                 $this.TenantConnection = $false
+
+                if ($showMsg)
+                {
+                    $errCode     = $_.Exception.HResult
+                    $errMsg      = $_.Exception.Message
+                    $errLocation = $_.InvocationInfo.PositionMessage
+                    Write-Host (" [X]") -ForegroundColor Red
+                    Write-Host ("Code Error '{0}' - Error: {1} {2}" -f $errCode, $errMsg, $errLocation) -ForegroundColor Red
+                    Write-Host ""
+                }
             }
             
             if ($this.TenantConnection -eq $false)
             {
                 $dataReturn = $false
-                if ($showMsg -eq $true) {
-                    Write-Host "Se desactiva soporte Intune!!" -ForegroundColor Red
+                if ($showMsg) {
+                    Write-Host "Intune support is disabled!!" -ForegroundColor Red
                 }
-                Start-Sleep -Seconds 5
+            }
+
+            if ($showMsg) {
+                Write-Host ""
             }
         }
 
@@ -325,12 +434,38 @@ class intuneWin32AppCustom {
 
 
 
-
-
     [void] SetRootPathSoftware([string] $newPath) {
+        <#
+        .SYNOPSIS
+            Establece la ruta raíz del software con la ruta proporcionada como argumento.
+
+        .DESCRIPTION
+            Esta función permite establecer la ruta raíz del software con la ruta proporcionada como
+            argumento. La ruta se asigna a la propiedad 'pathRootSoftware' del objeto actual.
+
+        .PARAMETER newPath
+            Nuevo camino que se utilizará como ruta raíz del software.
+
+        .NOTES
+            Esta función no tiene salida; simplemente actualiza la propiedad 'pathRootSoftware' del objeto actual.
+        #>
         $this.pathRootSoftware = $newPath
     }
+
     [string] GetRootPathSoftware() {
+        <#
+        .SYNOPSIS
+            Obtiene la ruta raíz del software.
+
+        .DESCRIPTION
+            Esta función permite obtener la ruta raíz del software. Verifica si la propiedad 'pathRootSoftware' del
+            objeto actual está definida. Si está vacía o nula, devuelve $null; de lo contrario, devuelve la ruta
+            raíz del software.
+
+        .OUTPUTS
+            Esta función retorna la ruta raíz del software si está definida en la propiedad 'pathRootSoftware'; de 
+            lo contrario, devuelve $null.
+        #>
         if ([string]::IsNullOrEmpty($this.pathRootSoftware))
         {
             return $null
@@ -338,106 +473,199 @@ class intuneWin32AppCustom {
         return $this.pathRootSoftware
     }
 
+    [string] GetIsRootPathSoftwareExist() {
+        <#
+        .SYNOPSIS
+            Verifica si el directorio raíz del software existe y es un directorio válido.
+
+        .DESCRIPTION
+            Esta función comprueba si el directorio raíz del software está especificado y si existe como un
+            directorio válido en el sistema de archivos.
+
+        .PARAMETER None
+            Esta función no acepta parámetros directos. Utiliza el valor devuelto por GetRootPathSoftware().
+
+        .OUTPUTS
+            Devuelve un valor booleano (true o false) que indica si el directorio raíz del software existe y es un directorio válido.
+        #>
+        $rootPath = $this.GetRootPathSoftware()
+        if ([string]::IsNullOrEmpty($rootPath) -or -not (Test-Path -Path $rootPath -PathType Container))
+        {
+            return $false
+        }
+        return $true
+    }
+
+    
 
 
+    [string] GetPathFileInfoSoftwarePublish([string] $software, [string] $version) {
+        <#
+        .SYNOPSIS
+            Obtiene la ruta del archivo "info.json" del software especificado.
 
+        .DESCRIPTION
+            Esta función construye y devuelve la ruta completa del archivo "info.json" para el
+            software especificado y su versión (si se proporciona).
 
+        .PARAMETER $software
+            Nombre del software.
 
-    [string] GetPathFileInfoSoftwarePublic([string] $software, [string] $version) {
-        
-        $path = $this.GetRootPathSoftware()
-        if ([string]::IsNullOrEmpty($path) -or [string]::IsNullOrEmpty($software))
+        .PARAMETER $version
+            Número de versión del software (opcional).
+
+        .OUTPUTS
+            [string] Ruta completa del archivo "info.json" del software especificado. Retorna $null si la 
+            ruta no puede ser construida.
+        #>
+        if ($this.GetIsRootPathSoftwareExist() -eq $false -or [string]::IsNullOrEmpty($software))
         {
             return $null
         }
+        $path = $this.GetRootPathSoftware()
         $path = Join-Path $path $software
         if (-not [string]::IsNullOrEmpty($version))
         {
-            $path = Join-Path $path "source"
+            $path = Join-Path $path $this.PathSoftSource 
             $path = Join-Path $path $version
         }
-        $path = Join-Path $path "info.json"
+        $path = Join-Path $path $this.NameFileInfoJSON
         return $path
     }
 
-    [bool] IsExistFileInfoSoftwarePublic([string] $software, [string] $version) {
+    [bool] IsExistFileInfoSoftwarePublish([string] $software, [string] $version) {
+        <#
+        .SYNOPSIS
+            Verifica si existe el archivo "info.json" para el software y la versión especificados.
 
-        $softPathInfo = $this.GetPathFileInfoSoftwarePublic($software, $version)
+        .DESCRIPTION
+            Esta función verifica si el archivo "info.json" para el software y la versión especificados 
+            existe en el sistema de archivos.
+
+        .PARAMETER $software
+            Nombre del software.
+
+        .PARAMETER $version
+            Número de versión del software (opcional).
+
+        .OUTPUTS
+            [bool] Verdadero si el archivo "info.json" existe, falso de lo contrario.
+        #>
+
+        $softPathInfo = $this.GetPathFileInfoSoftwarePublish($software, $version)
         if ([string]::IsNullOrEmpty($softPathInfo) -and -not [string]::IsNullOrEmpty($version)) 
         {
-            $softPathInfo = $this.GetPathFileInfoSoftwarePublic($software, "")
+            $softPathInfo = $this.GetPathFileInfoSoftwarePublish($software, "")
         }
         return -not [string]::IsNullOrEmpty($softPathInfo) -and (Test-Path -Path $softPathInfo -PathType Leaf)
     }
 
     [bool] SetDefaultConfigFileInfoSoftwarePubic([string] $software, [string] $version) {
+        <#
+        .SYNOPSIS
+            Establece la configuración predeterminada para el archivo "info.json" del software 
+            especificado y su versión.
 
+        .DESCRIPTION
+            Esta función establece la configuración predeterminada para el archivo "info.json" del
+            software especificado y su versión (si se proporciona).
+
+        .PARAMETER $software
+            Nombre del software.
+
+        .PARAMETER $version
+            Número de versión del software (opcional).
+
+        .OUTPUTS
+            [bool] Verdadero si se establece la configuración predeterminada con éxito, falso de lo contrario.
+        #>
+        $dataReturn = $false
         if ([string]::IsNullOrEmpty($software))
         {
-            Write-Host ("SetDefaultConfigFileInfoSoftwarePubic: No se he defindo Software!") -ForegroundColor Red
-            return $false
+            Write-Host ("SetDefaultConfigFileInfoSoftwarePubic: Software is missing!") -ForegroundColor Red
         }
-        
-        $softPathInfo = $this.GetPathFileInfoSoftwarePublic($software, $version)
-        if ([string]::IsNullOrEmpty($softPathInfo))
+        else
         {
-            Write-Host ("SetDefaultConfigFileInfoSoftwarePubic: No se ha obtenido path del archivo!") -ForegroundColor Red
-            return $false
-        }
-        
-        Write-Host ("El archivo '{0}' no existe, creando..." -f $softPathInfo) -ForegroundColor Yellow -NoNewline
-
-        $jsonDefault = @{
-            "Remplaces" = @{}
-            "Win32App" = @{}
-        }
-        foreach ($prop in $this.InfoPublicSoftware.Keys)
-        {
-            switch -regex ($prop) {
-                "(?i)DisplayName" {
-                    $jsonDefault['Win32App'][$prop] = $software
-                }
-                "(?i)Description" {
-                    $jsonDefault['Win32App'][$prop] = $software
-                }
-                "(?i)Publisher" {
-                    $jsonDefault['Win32App'][$prop] = $software
-                }
-                default {
-                    $jsonDefault['Win32App'][$prop] = $this.InfoPublicSoftware[$prop]["defaultValue"]
-                }
+            $softPathInfo = $this.GetPathFileInfoSoftwarePublish($software, $version)
+            if ([string]::IsNullOrEmpty($softPathInfo))
+            {
+                Write-Host ("SetDefaultConfigFileInfoSoftwarePubic: File path is null!") -ForegroundColor Red
             }
-            Write-Host (".") -ForegroundColor Yellow -NoNewline
+            else
+            {
+                Write-Host ("File '{0}' does not exist, creating..." -f $softPathInfo) -ForegroundColor Yellow -NoNewline
+                $jsonDefault = @{
+                    "Options"   = @{
+                        "Type" = "Win32App"
+                    }
+                    "Remplaces" = @{}
+                    "Win32App"  = @{}
+                    "MSI"       = @{}
+                }
+                foreach ($prop in $this.InfoPublishSoftware.Keys)
+                {
+                    switch -regex ($prop) {
+                        "(?i)DisplayName" {
+                            $jsonDefault['Win32App'][$prop] = $software
+                        }
+                        "(?i)Description" {
+                            $jsonDefault['Win32App'][$prop] = $software
+                        }
+                        "(?i)Publisher" {
+                            $jsonDefault['Win32App'][$prop] = $software
+                        }
+                        default {
+                            $jsonDefault['Win32App'][$prop] = $this.InfoPublishSoftware[$prop]["defaultValue"]
+                        }
+                    }
+                    Write-Host (".") -ForegroundColor Yellow -NoNewline
+                }
+                Try
+                {
+                    $jsonDefaultString = $jsonDefault | ConvertTo-Json
+                    $jsonDefaultString | Set-Content -Path $softPathInfo
+                    Write-Host (" [√]") -ForegroundColor Green
+                    $dataReturn = $true
+                }
+                catch
+                {
+                    $dataReturn  = $false
+                    $errCode     = $_.Exception.HResult
+                    $errMsg      = $_.Exception.Message
+                    $errLocation = $_.InvocationInfo.PositionMessage
+                    Write-Host (" [X]") -ForegroundColor Red
+                    Write-Host ("Code Error '{0}' - Error: {1} {2}" -f $errCode, $errMsg, $errLocation) -ForegroundColor Red
+                }
+                Write-Host ""
+            }
         }
-                
-        Try
-        {
-            $jsonDefaultString = $jsonDefault | ConvertTo-Json
-            $jsonDefaultString | Set-Content -Path $softPathInfo
-            Write-Host " [OK]" -ForegroundColor Green
-            Write-Host ""
-            return $true
-        }
-        catch
-        {
-            Write-Host " [Error]" -ForegroundColor Red
-            # $errCode     = $_.Exception.HResult
-            $errMsg      = $_.Exception.Message
-            $errLocation = $_.InvocationInfo.PositionMessage
-            Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
-
-            return $false
-        }
+        return $dataReturn
     }
 
     [bool] CheckRequieredValues([hashtable] $Win32AppArgs) {
+        <#
+        .SYNOPSIS
+            Verifica si los valores requeridos están presentes y no son nulos o cadenas vacías en el
+            hashtable proporcionado.
+
+        .DESCRIPTION
+            Esta función verifica si los valores requeridos para las claves especificadas en InfoPublishSoftware
+            están presentes en el hashtable proporcionado.
+
+        .PARAMETER $Win32AppArgs
+            Hashtable que contiene los argumentos del software Win32.
+
+        .OUTPUTS
+            [bool] Verdadero si todos los valores requeridos están presentes y no son nulos o cadenas vacías,
+            falso de lo contrario.
+        #>
         $dataReturn = $true
-        foreach ($key in $this.InfoPublicSoftware.Keys) {
+        foreach ($key in $this.InfoPublishSoftware.Keys) {
             
             $required = $false
-            if ($this.InfoPublicSoftware[$key].ContainsKey("required"))
+            if ($this.InfoPublishSoftware[$key].ContainsKey("required"))
             {
-                $required = $this.InfoPublicSoftware[$key].required
+                $required = $this.InfoPublishSoftware[$key].required
             }
             
             if ($required -eq $true)
@@ -456,151 +684,191 @@ class intuneWin32AppCustom {
         return $dataReturn
     }
 
-    [bool] EditFileInfoSoftwarePublic([string] $softPathInfo) {
+    [bool] EditFileInfoSoftwarePublish([string] $softPathInfo) {
+        <#
+        .SYNOPSIS
+            Edita el archivo de configuración JSON del software Win32.
 
-        if ([string]::IsNullOrWhiteSpace($softPathInfo)) {
-            return $false
-        }
+        .DESCRIPTION
+            Esta función permite editar las propiedades del software Win32 en el archivo de
+            configuración JSON especificado.
 
-        try {
-            # Cargamos la configuracion de info.json para ver si tenemos que editarla
-            $jsonContent = Get-Content -Path $softPathInfo | Out-String
-            $jsonObject = $jsonContent | ConvertFrom-Json
-                
-            do {
-                foreach ($propiedad in $this.InfoPublicSoftware.Keys) {
-                    $label         = $propiedad
-                    $value         = ""
-                    $allowedValues = $null
-                    $defaultValue  = ""
-                    $required      = $false
+        .PARAMETER $softPathInfo
+            La ruta del archivo de configuración JSON del software Win32.
 
-                    foreach ($input_prop in $this.InfoPublicSoftwareProp) {
+        .OUTPUTS
+            [bool] Verdadero si la edición se realizó correctamente, falso si ocurrió un error.
+        #>
+        $dataReturn = $false
+        if (-not [string]::IsNullOrWhiteSpace($softPathInfo))
+        {
+            try {
+                # Cargamos la configuracion de info.json para ver si tenemos que editarla
+                $jsonContent = Get-Content -Path $softPathInfo | Out-String
+                $jsonObject = $jsonContent | ConvertFrom-Json
+                    
+                do {
+                    foreach ($propiedad in $this.InfoPublishSoftware.Keys) {
+                        $label         = $propiedad
+                        $value         = ""
+                        $allowedValues = $null
+                        $defaultValue  = ""
+                        $required      = $false
 
-                        if ($this.InfoPublicSoftware[$propiedad].ContainsKey($input_prop))
-                        {
-                            Set-Variable -Name $input_prop -Value $this.InfoPublicSoftware[$propiedad][$input_prop]   
-                        }
-                    }
-
-                    if ($jsonObject.Win32App.PSObject.Properties[$propiedad] )
-                    {
-                        $value = $($jsonObject.Win32App.$propiedad)
-                    }
-                    else
-                    {
-                        # # Convertir Win32App en un objeto PSObject para permitir propiedades dinámicas
-                        # $jsonObject.Win32App = New-Object PSObject -Property $jsonObject.Win32App
-
-                        # Agregar la nueva propiedad al objeto
-                        $jsonObject.Win32App | Add-Member -MemberType NoteProperty -Name $propiedad -Value $defaultValue
-                    }
-
-
-                    do {
-                        Clear-Host
-                        Write-Host ("{0}:" -f $label) -ForegroundColor Green
-                        if ($required -eq $true)
-                        {
-                            Write-Host ("Campo Requeriado!") -ForegroundColor Yellow
-                        }
-                        if ($null -ne $allowedValues)
-                        {
-                            $allowedValuesString = ""
-                            if ($allowedValues -is [string])
+                        foreach ($input_prop in $this.InfoPublishSoftwareProp) {
+                            if ($this.InfoPublishSoftware[$propiedad].ContainsKey($input_prop))
                             {
-                                $allowedValuesString = $allowedValues
-                            }
-                            else
-                            {
-                                $allowedValuesString = $($allowedValues -join ', ')
-                            }
-                            Write-Host ("Valores permitidos: {0}" -f $allowedValuesString ) -ForegroundColor Yellow
-                        }
-                        Write-Host ("Valor   ({0})" -f $value) -ForegroundColor Green
-                        Write-Host ("Default ({0})" -f $defaultValue) -ForegroundColor Green
-                        Write-Host ""
-                        $newValue = Read-Host ("Nuevo Valor, !! para valor por defecto")
-                        
-                        if ($newValue -eq "!!")
-                        {
-                            $newValue = $defaultValue
-                        }
-                        elseif ($required -eq $true)
-                        {
-                            if ([string]::IsNullOrWhiteSpace($newValue) -and [string]::IsNullOrWhiteSpace($value))
-                            {
-                                Write-Host ("Dato requerido!") -ForegroundColor Red
-                                Continue
-                            }
-                            elseif ([string]::IsNullOrWhiteSpace($newValue) -and -not [string]::IsNullOrWhiteSpace($value))
-                            {
-                                $newValue = $value
+                                Set-Variable -Name $input_prop -Value $this.InfoPublishSoftware[$propiedad][$input_prop]   
                             }
                         }
-                        elseif (-not [string]::IsNullOrWhiteSpace($allowedValues))
+
+                        if ($jsonObject.Win32App.PSObject.Properties[$propiedad] )
                         {
-                            if ($allowedValues -eq "onlyurl")
+                            $value = $($jsonObject.Win32App.$propiedad)
+                        }
+                        else
+                        {
+                            # # Convertir Win32App en un objeto PSObject para permitir propiedades dinámicas
+                            # $jsonObject.Win32App = New-Object PSObject -Property $jsonObject.Win32App
+
+                            # Agregar la nueva propiedad al objeto
+                            $jsonObject.Win32App | Add-Member -MemberType NoteProperty -Name $propiedad -Value $defaultValue
+                        }
+
+
+                        do {
+                            Clear-Host
+                            Write-Host ("{0}:" -f $label) -ForegroundColor Green
+                            if ($required -eq $true)
                             {
-                                if (-not [string]::IsNullOrWhiteSpace($newValue))
+                                Write-Host ("Required!") -ForegroundColor Red
+                            }
+                            if ($null -ne $allowedValues)
+                            {
+                                $allowedValuesString = ""
+                                if ($allowedValues -is [string])
                                 {
-                                    $urlOk = Get-ValidarURL($newValue)
-                                    if ($urlOk -eq $false) 
-                                    {
-                                        Write-Host ("Url No valida!") -ForegroundColor Red
-                                        Continue
-                                    }
+                                    $allowedValuesString = $allowedValues
+                                }
+                                else
+                                {
+                                    $allowedValuesString = $($allowedValues -join ', ')
+                                }
+                                Write-Host ("Allowed Values: {0}" -f $allowedValuesString ) -ForegroundColor Yellow
+                            }
+                            Write-Host ("Value   ({0})" -f $value) -ForegroundColor Green
+                            Write-Host ("Default ({0})" -f $defaultValue) -ForegroundColor Green
+                            Write-Host ""
+                            $newValue = Read-Host ("New Value, !! for default value")
+                            
+                            if ($newValue -eq "!!")
+                            {
+                                $newValue = $defaultValue
+                            }
+                            elseif ($required -eq $true)
+                            {
+                                if ([string]::IsNullOrWhiteSpace($newValue) -and [string]::IsNullOrWhiteSpace($value))
+                                {
+                                    Write-Host ("Error, Required Data!") -ForegroundColor Red
+                                    Continue
+                                }
+                                elseif ([string]::IsNullOrWhiteSpace($newValue) -and -not [string]::IsNullOrWhiteSpace($value))
+                                {
+                                    $newValue = $value
                                 }
                             }
-                            elseif (-not [string]::IsNullOrWhiteSpace($newValue) -and $newValue -notin $allowedValues)
+                            elseif (-not [string]::IsNullOrWhiteSpace($allowedValues))
                             {
-                                Write-Host ("Valor ({0}) no permitido. Los valores permitidos son: {1}" -f $newValue, $($allowedValues -join ', ') ) -ForegroundColor Red
-                                Continue
+                                if ($allowedValues -eq "onlyurl")
+                                {
+                                    if (-not [string]::IsNullOrWhiteSpace($newValue))
+                                    {
+                                        $urlOk = Get-ValidarURL($newValue)
+                                        if ($urlOk -eq $false) 
+                                        {
+                                            Write-Host ("Invalid URL!") -ForegroundColor Red
+                                            Continue
+                                        }
+                                    }
+                                }
+                                elseif (-not [string]::IsNullOrWhiteSpace($newValue) -and $newValue -notin $allowedValues)
+                                {
+                                    Write-Host ("Value '{0}' not allowed. The allowed values ​​are: {1}" -f $newValue, $($allowedValues -join ', ') ) -ForegroundColor Red
+                                    Continue
+                                }
                             }
-                        }
-                        if (-not [string]::IsNullOrWhiteSpace($newValue))
-                        {
-                            $value = $newValue
-                        }
-                        Write-Host ""
-                        break
-                    } while ($true)
-                    
-                    # Actualizar la propiedad en el objeto JSON
-                    $jsonObject.Win32App.$propiedad = $value
-                }
+                            if (-not [string]::IsNullOrWhiteSpace($newValue))
+                            {
+                                $value = $newValue
+                            }
+                            Write-Host ""
+                            break
+                        } while ($true)
+                        
+                        # Actualizar la propiedad en el objeto JSON
+                        $jsonObject.Win32App.$propiedad = $value
+                    }
 
-                Clear-Host
-                Write-Host "Datos Nuevos:" -ForegroundColor Yellow
-                Write-Host (Write-Output $jsonObject.Win32App | Format-List | Out-String)
+                    Clear-Host
+                    Write-Host "New Data:" -ForegroundColor Yellow
+                    Write-Host (Write-Output $jsonObject.Win32App | Format-List | Out-String)
 
-                $queryEditAppInfoNewOK = QueryYesNo -msg "¿Los datos son correcots, Sí para guardar, No para volver a editar? (Y/N)"
-                if ($queryEditAppInfoNewOK -eq $true)
-                {
-                    Write-Host ("Guardando cambios...") -ForegroundColor Yellow -NoNewline
-                    $jsonContent = $jsonObject | ConvertTo-Json
-                    $jsonContent | Set-Content -Path $softPathInfo
-                    Write-Host (" [OK]") -ForegroundColor Green
-                    break;
-                }
 
-            } while ($true)
+                    $msgQuery = $(Write-Host "(Y/N)" -ForegroundColor Yellow -NoNewline $(Write-Host "Is the data correct, YES to save, NO to edit again? " -ForegroundColor Green -NoNewLine))
+                    if ((QueryYesNo -msg $msgQuery))
+                    {
+                        Write-Host ("Saving Changes...") -ForegroundColor Yellow -NoNewline
+                        $jsonContent = $jsonObject | ConvertTo-Json
+                        $jsonContent | Set-Content -Path $softPathInfo
+                        Write-Host (" [√]") -ForegroundColor Green
+                        break;
+                    }
+
+                } while ($true)
+                
+                $dataReturn  = $true
+            }
+            catch
+            {
+                $dataReturn  = $false
+                $errCode     = $_.Exception.HResult
+                $errMsg      = $_.Exception.Message
+                $errLocation = $_.InvocationInfo.PositionMessage
+                Write-Host ("Code Error '{0}' - Error: {1} {2}" -f $errCode, $errMsg, $errLocation) -ForegroundColor Red
+            }
         }
-        catch
-        {
-            # $errCode     = $_.Exception.HResult
-            $errMsg      = $_.Exception.Message
-            $errLocation = $_.InvocationInfo.PositionMessage
-            Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
-            return $false
-        }
-        return $true
+        Write-Host ""
+        return $dataReturn
     }
 
     [hashtable] ReadFileInfoSoftwarePubic([string] $software, [string] $version, [bool] $forzeEdit) {
+        <#
+        .SYNOPSIS
+            Lee la configuración del software desde un archivo JSON.
+
+        .DESCRIPTION
+            Esta función lee la configuración del software desde un archivo JSON especificado y devuelve un
+            hashtable que contiene las propiedades del software.
+
+        .PARAMETER $software
+            El nombre del software.
+
+        .PARAMETER $version
+            La versión del software.
+
+        .PARAMETER $forzeEdit
+            Un indicador booleano que indica si se debe forzar la edición del archivo de configuración JSON.
+
+        .OUTPUTS
+            [hashtable] Un hashtable que contiene las propiedades del software, incluidos los reemplazos y las
+            configuraciones del software.
+
+        #>
         $dataReturn = @{
+            "Options"   = @{}
             "Remplaces" = @{}
             "Win32App"  = @{}
+            "MSI"       = @{}
             "status"    = $false
             "error"     = @{
                 "code"     = 0
@@ -611,20 +879,25 @@ class intuneWin32AppCustom {
 
         if ([string]::IsNullOrEmpty($software) -or [string]::IsNullOrEmpty($version))
         {
-            Write-Host ("Error ReadConfig: Faltan datos - Software ({0}), Version ({1}) !!" -f $software, $version) -ForegroundColor Red
+            $errMsg = "ReadFileInfoSoftwarePubic: Missing data - Software ({0}), Version ({1})!!" -f $software, $version
+            Write-Host $errMsg -ForegroundColor Red
+            Write-Host ""
+
+            $dataReturn["error"]['msg']  = $errMsg
+            $dataReturn["error"]['code'] = "1"
         }
         else
         {
             $queryEditAppInfo = $false
-            $newInfoJSON = $false
+            $newInfoJSON      = $false
 
-            if ($this.IsExistFileInfoSoftwarePublic($software, $version) -eq $true)
+            if ($this.IsExistFileInfoSoftwarePublish($software, $version) -eq $true)
             {
-                $softPathInfo = $this.GetPathFileInfoSoftwarePublic($software, $version)
+                $softPathInfo = $this.GetPathFileInfoSoftwarePublish($software, $version)
             }
             else
             {
-                $softPathInfo = $this.GetPathFileInfoSoftwarePublic($software, "")
+                $softPathInfo = $this.GetPathFileInfoSoftwarePublish($software, "")
                 if (-not [string]::IsNullOrEmpty($softPathInfo))
                 {
                     if (-not (Test-Path -Path $softPathInfo -PathType Leaf))
@@ -641,6 +914,9 @@ class intuneWin32AppCustom {
                 {
                     $Win32AppArgs      = @{}
                     $Win32AppRemplaces = @{}
+                    $Win32AppOptions   = @{}
+                    $Win32AppMSI       = @{}
+
 
                     # Cargamos la configuracion de info.json para ver si tenemos que editarla
                     $jsonContent = Get-Content -Path $softPathInfo | Out-String
@@ -649,15 +925,17 @@ class intuneWin32AppCustom {
                     if ($newInfoJSON -eq $false -and $forzeEdit -eq $false)
                     {
                         Clear-Host
-                        Write-Host "Datos Actuales:" -ForegroundColor Yellow
+                        Write-Host "Current Data:" -ForegroundColor Yellow
                         Write-Host (Write-Output $jsonObject.Win32App | Format-List | Out-String)
-                        $queryEditAppInfo = QueryYesNo -msg "¿Quieres editar algun dato? (Y/N)"
+
+                        $msgQuery = $(Write-Host "(Y/N)" -ForegroundColor Yellow -NoNewline $(Write-Host "Do you want to edit the data? " -ForegroundColor Green -NoNewLine))
+                        $queryEditAppInfo = QueryYesNo -msg $msgQuery
                         Write-Host ""
                     }
                     
                     if ($queryEditAppInfo -eq $true -or $newInfoJSON -eq $true -or $forzeEdit -eq $true)
                     {
-                        $this.EditFileInfoSoftwarePublic($softPathInfo)
+                        $this.EditFileInfoSoftwarePublish($softPathInfo)
                     }
                     $jsonContent = $null
                     $jsonObject  = $null
@@ -676,10 +954,20 @@ class intuneWin32AppCustom {
                     {
                         $Win32AppRemplaces = $infoJsonContent.Remplaces
                     }
+                    if ($infoJsonContent.PSObject.Properties.Name -contains "Options")
+                    {
+                        $Win32AppOptions = $infoJsonContent.Options
+                    }
+                    if ($infoJsonContent.PSObject.Properties.Name -contains "MSI")
+                    {
+                        $Win32AppMSI = $infoJsonContent.MSI
+                    }
                     
                     $dataReturn = @{
+                        "Options"   = $Win32AppOptions
                         "Remplaces" = $Win32AppRemplaces
                         "Win32App"  = $Win32AppArgs
+                        "MSI"       = $Win32AppMSI
                         "status"    = $true
                     }
                 }
@@ -688,7 +976,8 @@ class intuneWin32AppCustom {
                     $errCode     = $_.Exception.HResult
                     $errMsg      = $_.Exception.Message
                     $errLocation = $_.InvocationInfo.PositionMessage
-                    Write-Host ("{0} {1}" -f $errMsg, $errLocation) -ForegroundColor Red
+                    Write-Host ("Code Error '{0}' - Error: {1} {2}" -f $errCode, $errMsg, $errLocation) -ForegroundColor Red
+                    Write-Host ""
 
                     $dataReturn["error"]["code"]     = $errCode
                     $dataReturn["error"]["msg"]      = $errMsg
@@ -699,27 +988,37 @@ class intuneWin32AppCustom {
             {
                 $errMsg = ("File '{0}' not found. :(" -f $softPathInfo)
                 Write-Host $errMsg -ForegroundColor Red
+                Write-Host ""
 
-                $dataReturn["error"]["code"] = 1
+                $dataReturn["error"]["code"] = 2
                 $dataReturn["error"]["msg"]  = $errMsg
             }
-            
         }
         return $dataReturn
     }
-    
-
 
 
 
 
     [string] GetPathLogoSoftware([string] $software, [string] $version) {
+        <#
+        .SYNOPSIS
+            Obtiene la ruta del archivo de logo para un software específico.
 
-        if ([string]::IsNullOrEmpty($software) -or [string]::IsNullOrEmpty($version))
-        {
-            return $null
-        }
+        .DESCRIPTION
+            Esta función construye la ruta del archivo de logo para un software y su versión específicos. La ruta se construye
+            utilizando la ruta raíz del software, el nombre del software y la versión. Si no se proporciona una versión, la 
+            función devuelve la ruta al directorio de logos sin una versión específica.
 
+        .PARAMETER $software
+            El nombre del software.
+
+        .PARAMETER $version
+            La versión específica del software.
+
+        .OUTPUTS
+            [string] La ruta completa del archivo de logo, incluyendo el nombre del archivo.
+        #>
         $path = $this.GetRootPathSoftware()
         if ([string]::IsNullOrEmpty($path) -or [string]::IsNullOrEmpty($software))
         {
@@ -729,24 +1028,41 @@ class intuneWin32AppCustom {
         $path = Join-Path $path $software
         if (-not [string]::IsNullOrEmpty($version))
         {
-            $path = Join-Path $path "source"
+            $path = Join-Path $path $this.PathSoftSource
             $path = Join-Path $path $version
         }
         
-        $path = Join-Path $path "logo"
-        $path = Join-Path $path "logo.png"
+        $path = Join-Path $path $this.PathSoftLogo
+        $path = Join-Path $path $this.NameFileLogo
         return $path
     }
 
 
 
+
     [string] GetPathScriptDetect([string] $software, [string] $version) {
+        <#
+        .SYNOPSIS
+            Obtiene la ruta del script de detección para un software específico y su versión.
+
+        .DESCRIPTION
+            Esta función construye la ruta del script de detección para un software y su versión específicos. La ruta se construye utilizando la ruta raíz del software, el nombre del software, la versión y la estructura de carpetas estándar. Si no se proporciona una versión, la función devuelve la ruta al script de detección sin una versión específica.
+
+        .PARAMETER $software
+            El nombre del software.
+
+        .PARAMETER $version
+            La versión específica del software.
+
+        .OUTPUTS
+            [string] La ruta completa del script de detección, incluyendo el nombre del archivo.
+        #>
 
         if ([string]::IsNullOrEmpty($software) -or [string]::IsNullOrEmpty($version))
         {
             return $null
         }
-
+        
         $path = $this.GetRootPathSoftware()
         if ([string]::IsNullOrEmpty($path) -or [string]::IsNullOrEmpty($software))
         {
@@ -754,24 +1070,34 @@ class intuneWin32AppCustom {
         }
 
         $path = Join-Path $path $software
-        $path = Join-Path $path "source"
+        $path = Join-Path $path $this.PathSoftSource
         $path = Join-Path $path $version
-        $path = Join-Path $path "scripts"
-        $path = Join-Path $path "Detection_Script.ps1"
+        $path = Join-Path $path $this.PathSoftScript
+        $path = Join-Path $path $this.NameFileDetect
         return $path
     }
 
 
 
 
-    # Check file intunewin exist
-    # Comprobamos si el programa se ha publica ya en Intune
-    # Return:
-    #   False = No se ha publicado
-    #   True  = Si se ha publicado
-    #   Null  = Faltan datos
-    [bool] CheckIfPublicSoftware([string] $software, [string] $version) {
+    [bool] CheckIfPublishSoftware([string] $software, [string] $version) {
+        <#
+        .SYNOPSIS
+            Verifica si un software específico y su versión están presentes en Intune.
 
+        .DESCRIPTION
+            Esta función comprueba si un software y su versión específica están presentes en Intune. Utiliza el
+            nombre del software y la versión para buscar en Intune y determina si la aplicación está disponible.
+
+        .PARAMETER $software
+            El nombre del software.
+
+        .PARAMETER $version
+            La versión específica del software.
+
+        .OUTPUTS
+            [bool] True si el software y la versión están presentes en Intune, False de lo contrario.
+        #>
         if ([string]::IsNullOrEmpty($software) -or [string]::IsNullOrEmpty($version))
         {
             return $null
@@ -789,11 +1115,7 @@ class intuneWin32AppCustom {
         else
         {
             $formatoResult = ""
-            if ($null -eq $Win32AppInfo)
-            {
-                $formatoResult = "Null"
-            }
-            elseif ($Win32AppInfo -is [int])
+            if ($Win32AppInfo -is [int])
             {
                 $formatoResult = "Int"
             }
@@ -825,40 +1147,54 @@ class intuneWin32AppCustom {
             {
                 $formatoResult = "Unknown"
             }
-            return $formatoResult
+            Write-Host ("CheckIfPublishSoftware: Unsupported Format Return '{0}' - Software '{1}', Version '{2}'!!" -f $formatoResult, $software, $version) -ForegroundColor Yellow
+            Write-Host ""
+            return $false
         }
     }
 
-    [bool] PublicSoftware([string] $software, [string] $version, [string] $fileIntuneWin)
+
+
+
+    [bool] PublishSoftware([string] $software, [string] $version, [string] $fileIntuneWin)
     {
-        if ($this.GetIsEnabled() -eq $false) {
+        if ($this.GetIsEnabled() -eq $false)
+        {
+            Write-Host "Cannot publish, itunes support is disabled!" -ForegroundColor Yellow
+            Write-Host ""
             return $false
         }
 
         $configRead = $this.ReadFileInfoSoftwarePubic($software, $version, $false)
         if ($configRead['status'] -eq $false)
         {
-            Write-Host ""
-            Write-Host ("Proceso Abortado, error ({0}) : {1}" -f $configRead['error']['code'], $configRead['error']['msg']) -ForegroundColor Red
+            Write-Host ("Aborted Process, error ({0}) : {1}" -f $configRead['error']['code'], $configRead['error']['msg']) -ForegroundColor Red
             Write-Host ""
             return $false
         }
+        $Win32AppOptions   = $configRead['Options']
         $Win32AppArgs      = $configRead['Win32App']
         $Win32AppRemplaces = $configRead['Remplaces']
+        $Win32AppMSI       = $configRead['MSI']
+
+
 
 
         # Revisa si falta algun dato requerid
         while ($this.CheckRequieredValues($Win32AppArgs) -eq $false) {
 
-            $queryEditAppInfoRequierdMissing = QueryYesNo -msg "¿Falta algun datos requerido, Sí para editar datos, No abortar publicacion? (Y/N)"
+            $msgQuery = $(Write-Host "(Y/N)" -ForegroundColor Yellow -NoNewline $(Write-Host "Is any of the required data missing, YES to edit the data, NO abort publication? " -ForegroundColor Green -NoNewLine))
+            $queryEditAppInfoRequierdMissing = QueryYesNo -msg $msgQuery
             Write-Host ""
             if ($queryEditAppInfoRequierdMissing -eq $true)
             {
                 $configRead = $this.ReadFileInfoSoftwarePubic($software, $version, $true)
                 if ($configRead['status'] -eq $true)
                 {
+                    $Win32AppOptions   = $configRead['Options']
                     $Win32AppArgs      = $configRead['Win32App']
                     $Win32AppRemplaces = $configRead['Remplaces']
+                    $Win32AppMSI       = $configRead['MSI']
                 }
                 else
                 {
@@ -869,7 +1205,7 @@ class intuneWin32AppCustom {
             }
             else
             {
-                Write-Host ("Proceso Abortado!") -ForegroundColor Red
+                Write-Host ("Aborted Process!") -ForegroundColor Red
                 Write-Host ""
                 return $false
             }
@@ -877,12 +1213,16 @@ class intuneWin32AppCustom {
 
 
 
+
         $connect = $this.ConnectMSIntune($false)
         if ($connect -eq $false) {
             return $false
         }
-        
-       
+
+
+
+
+        # Prepara los datos para subir la App a intune
 
         $Win32AppArgs['AppVersion']  = $version
         # $Win32AppArgs['DisplayName'] = "{0} {1}" -f $Win32AppArgs['DisplayName'], $Win32AppArgs['AppVersion']
@@ -919,13 +1259,11 @@ class intuneWin32AppCustom {
 
 
 
-
-
         # Check file intunewin exist
         $Win32AppArgs['FilePath'] = $fileIntuneWin
         if (-not (Test-Path -Path $Win32AppArgs['FilePath'] -PathType Leaf))
         {
-            Write-Host ("No se ha encontrado el archivo '{0}'" -f $Win32AppArgs['FilePath']) -ForegroundColor Red
+            Write-Host ("IntuneWin File '{0}' not found!" -f $Win32AppArgs['FilePath']) -ForegroundColor Red
             Write-Host ""
             Start-Sleep -Seconds 2
             return $false
@@ -933,70 +1271,77 @@ class intuneWin32AppCustom {
         
         
 
-        $isPublicSoftware = $this.CheckIfPublicSoftware($software, $Win32AppArgs['AppVersion'])
-        if ($null -eq $isPublicSoftware)
+
+        $isPublishSoftware = $this.CheckIfPublishSoftware($software, $Win32AppArgs['AppVersion'])
+        if ($null -eq $isPublishSoftware)
         {
             return $false
         }
-        elseif ($isPublicSoftware -eq $true)
+        elseif ($isPublishSoftware -eq $true)
         {
             $Win32AppInfo = Get-IntuneWin32App -DisplayName $software | Where-Object { $_.displayVersion -eq $Win32AppArgs['AppVersion'] }
 
             if ($Win32AppInfo.PSObject.Properties.Match('Count').Count -gt 0)
             {
-                Write-Host ("Se ha encontrado esta version de la app repetida {0} veces. Echa un ojo a ver que esta pasa!" -f $Win32AppInfo.Count) -ForegroundColor Red
+                Write-Host ("This version of the app has been found repeated {0} times. Take a look!" -f $Win32AppInfo.Count) -ForegroundColor Red
                 Write-Host ""
                 Get-IntuneWin32App -DisplayName $software | Where-Object { $_.displayVersion -eq $Win32AppArgs['AppVersion'] } | Select-Object -Property displayName, displayVersion, id, createdDateTime | Sort-Object -Property createdDateTime
             }
             elseif ($Win32AppInfo.PSObject.Properties.Match('id').Count -gt 0)
             {
-                Write-Host ("Actualizando PackageFile de la App [{0} {1}]..." -f $software, $Win32AppArgs['AppVersion']) -ForegroundColor Green
+                Write-Host ("Updating PackageFile App [{0} {1}]..." -f $software, $Win32AppArgs['AppVersion']) -ForegroundColor Green
                 Update-IntuneWin32AppPackageFile -ID $Win32AppInfo.id -FilePath $Win32AppArgs['FilePath']
-                Write-Host ("Actualizcion completa!") -ForegroundColor Green
+                Write-Host ("Complete Update!") -ForegroundColor Green
                 Write-Host ""
                 Start-Sleep -Seconds 2
                 return $true
             }
             else
             {
-                Write-Host ("Actualizando PackageFile abortada, no se detecto ID!") -ForegroundColor Red
+                Write-Host ("Updating PackageFile aborted, no ID detected!") -ForegroundColor Red
             }
             Write-Host ""
             Start-Sleep -Seconds 2
             return $false
         }
-        elseif ($isPublicSoftware -eq $false)
+        else
         {
             # Check Script Detecction
+            Write-Host ("Searching Script Detection...") -ForegroundColor Yellow -NoNewLine
             $softVerScriptDetection = $this.GetPathScriptDetect($software, $Win32AppArgs['AppVersion'])
-            if (-not (Test-Path -Path $softVerScriptDetection -PathType Leaf))
+            if ([string]::IsNullOrEmpty($softVerScriptDetection) -or -not (Test-Path -Path $softVerScriptDetection -PathType Leaf))
             {
-                Write-Host ("No se ha encontrado el script de deteccion [{0}]!" -f $softVerScriptDetection) -ForegroundColor Red
+                Write-Host (" [X]") -ForegroundColor Red
+                Write-Host ("Aborted Process, Detection Script '{0}' not found!" -f $softVerScriptDetection) -ForegroundColor Red
                 Write-Host ""
                 Start-Sleep -Seconds 2
                 return $false
             }
+            Write-Host (" [√]") -ForegroundColor Green
+
 
 
             # Create Logo
+            Write-Host ("Searching Logo...") -ForegroundColor Yellow -NoNewLine
             $softFileLogo = $this.GetPathLogoSoftware($software, $Win32AppArgs['AppVersion'])
-            if (-not (Test-Path -Path $softFileLogo -PathType Leaf))
+            if ([string]::IsNullOrEmpty($softFileLogo) -or -not (Test-Path -Path $softFileLogo -PathType Leaf))
             {
                 $softFileLogo = $this.GetPathLogoSoftware($software, "")
             }
-
-            if (-not [string]::IsNullOrEmpty($softFileLogo) -and (Test-Path -Path $softFileLogo -PathType Leaf))
+            if ([string]::IsNullOrEmpty($softFileLogo) -or -not (Test-Path -Path $softFileLogo -PathType Leaf))
             {
-                $Win32AppArgs['Icon'] = New-IntuneWin32AppIcon -FilePath $softFileLogo
+                $softFileLogo = $null
+                Write-Host (" [X]") -ForegroundColor Red
+                Write-Host ("Skip, no Logo Detected!") -ForegroundColor Yellow
+                Write-Host ""
             }
             else
             {
-                $softFileLogo = $null
-                Write-Host ("No se detecto logo") -ForegroundColor Yellow
-                Write-Host ""
+                $Win32AppArgs['Icon'] = New-IntuneWin32AppIcon -FilePath $softFileLogo
+                Write-Host (" [√]") -ForegroundColor Green
             }
 
-              
+ 
 
             # Create Requirement Rule
             $Win32AppRequirementRule = @{
@@ -1008,9 +1353,7 @@ class intuneWin32AppCustom {
             $Win32AppArgs.Remove("MinimumSupportedWindowsRelease")
 
 
-
             
-          
             # Detection rules
             $Win32AppDetectionRuleScript = @{
                 'ScriptFile'            = $softVerScriptDetection
@@ -1020,18 +1363,15 @@ class intuneWin32AppCustom {
             $Win32AppArgs['DetectionRule'] = New-IntuneWin32AppDetectionRuleScript @Win32AppDetectionRuleScript
 
 
-
-
             # Create custom return code
             # $ReturnCode = New-IntuneWin32AppReturnCode -ReturnCode 1337 -Type retry
             # $Win32AppArgs['ReturnCode'] = $ReturnCode
 
 
 
-
-            Write-Host ("Publicando App [{0} {1}]..." -f $Win32AppArgs['DisplayName'], $Win32AppArgs['AppVersion']) -ForegroundColor Green
+            Write-Host ("Publishing App [{0} {1}]..." -f $Win32AppArgs['DisplayName'], $Win32AppArgs['AppVersion']) -ForegroundColor Green
             Add-IntuneWin32App @Win32AppArgs
-            Write-Host ("Publicacion completa!") -ForegroundColor Green
+            Write-Host ("Publishing Completed!") -ForegroundColor Green
             Write-Host ""
             Start-Sleep -Seconds 2
         
@@ -1075,14 +1415,6 @@ class intuneWin32AppCustom {
             
             return $true
         }
-        else
-        {
-            Write-Host ("Formato no valido [{0}] en la deteccion de si existe el pakete en Intune!" -f $isPublicSoftware) -ForegroundColor Red
-            Write-Host ""
-            Start-Sleep -Seconds 2
-            return $false
-        }
-        return $false
     }
 
 
