@@ -22,15 +22,18 @@ function GetAsterisksLine($text) {
 
 function QueryYesNo {
     param(
-        [string]$msg,
-        [string]$OptionsYes            = "^(si|sí|s|yes|y)$",
-        [string]$OptionsNo             = "^(no|n)$",
-        [ConsoleColor]$ForegroundColor = "White",
-        [bool]$OptionNotFoundIsFalse   = $false
+        [string]$Msg,
+        [string]$OptionsYes              = "^(si|sí|s|yes|y)$",
+        [string]$OptionsNo               = "^(no|n)$",
+        [ConsoleColor]$ForegroundColor   = "White",
+        [ConsoleColor]$ForegroundColorYN = "Yellow",
+        [bool]$OptionNotFoundIsFalse     = $false
     )
     do {
         # $respuesta = Read-Host $msg
-        $respuesta = $(Write-Host $msg -ForegroundColor $ForegroundColor -NoNewLine; Read-Host)
+
+        $msg = $(Write-Host " (Y/N)" -ForegroundColor $ForegroundColorYN -NoNewline $(Write-Host $msg -ForegroundColor $ForegroundColor -NoNewLine))
+        $respuesta = $(Write-Host $msg -NoNewLine; Read-Host)
 
         switch -Regex ($respuesta.ToLower()) {
             $OptionsYes {

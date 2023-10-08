@@ -17,7 +17,9 @@ class intuneWin32AppCustom {
     [bool]$TenantConnection   = $false
 
     [bool]$enabled            = $true
+    [string]$OSType           = $null
 
+    [string]$PathSoftOut      = "out"
     [string]$PathSoftSource   = "source"
     [string]$PathSoftLogo     = "logo"
     [string]$PathSoftScript   = "scripts"
@@ -26,8 +28,7 @@ class intuneWin32AppCustom {
     [string]$NameFileDetect   = "Detection_Script.ps1"
     [string]$NameFileInfoJSON = "info.json"
 
-
-    [string[]]$necessaryModules       = @("MSGraph", "IntuneWin32App", "AzureAD", "PSIntuneAuth")
+    [string[]]$necessaryModules        = @("MSGraph", "IntuneWin32App", "AzureAD", "PSIntuneAuth")
     [string[]]$InfoPublishSoftwareProp = @("label", "allowedValues", "defaultValue", "required")
 
     [Hashtable]$InfoPublishSoftware = @{
@@ -129,7 +130,8 @@ class intuneWin32AppCustom {
             Inicializa la conexión al inquilino como deshabilitada, establece el ID del inquilino, habilita la instancia y establece la ruta raíz del software en una cadena vacía.
         #>
 
-        $this.TenantConnection  = $false
+        $this.TenantConnection = $false
+        $this.OSType           = $this.GetCurrentSO()
 
         $this.SetTenantID($NewTenantID)
         $this.SetEnabled($true)
@@ -273,7 +275,7 @@ class intuneWin32AppCustom {
                 if ($null -eq $installModuleQuery)
                 {
                     Write-Host ""
-                    $installModuleQuery = QueryYesNo -msg ("Do you want to Install the '{0}' Module? (Y/N)" -f $module) -ForegroundColor DarkYellow
+                    $installModuleQuery = QueryYesNo -Msg ("Do you want to Install the '{0}' Module?" -f $module) -ForegroundColor DarkYellow
                 }
                 if ($installModuleQuery -eq $false)
                 {
@@ -482,9 +484,6 @@ class intuneWin32AppCustom {
             Esta función comprueba si el directorio raíz del software está especificado y si existe como un
             directorio válido en el sistema de archivos.
 
-        .PARAMETER None
-            Esta función no acepta parámetros directos. Utiliza el valor devuelto por GetRootPathSoftware().
-
         .OUTPUTS
             Devuelve un valor booleano (true o false) que indica si el directorio raíz del software existe y es un directorio válido.
         #>
@@ -496,6 +495,32 @@ class intuneWin32AppCustom {
         return $true
     }
 
+    [string] GetOutPath([string] $software){
+        <#
+        .SYNOPSIS
+            Define un método llamado GetOutPath que construye una ruta de salida.
+
+        .DESCRIPTION
+            El método GetOutPath toma la ruta raíz del software y el nombre de la carpeta de salida (almacenado en $this.PathSoftOut) para
+            construir una ruta de salida completa. Si la ruta raíz del software o el nombre de la carpeta de salida están vacíos, el 
+            método devuelve $null.
+
+        .PARAMETER software
+            Nombre del software.
+
+        .OUTPUTS
+            [String] El método devuelve una cadena que representa la ruta de salida completa para el software. Si la función no puede construir
+            la ruta de salida, devuelve $null.
+        #>
+        $path = $this.GetRootPathSoftware()
+        if ([string]::IsNullOrEmpty($path) -or [string]::IsNullOrEmpty($software))
+        {
+            return $null
+        }
+        $path = Join-Path $path $software
+        $path = Join-Path $path $this.PathSoftOut
+        return $path
+    }
     
 
 
@@ -814,8 +839,7 @@ class intuneWin32AppCustom {
                     Write-Host (Write-Output $jsonObject.Win32App | Format-List | Out-String)
 
 
-                    $msgQuery = $(Write-Host "(Y/N)" -ForegroundColor Yellow -NoNewline $(Write-Host "Is the data correct, YES to save, NO to edit again? " -ForegroundColor Green -NoNewLine))
-                    if ((QueryYesNo -msg $msgQuery))
+                    if ((QueryYesNo -Msg "Is the data correct, YES to save, NO to edit again?" -ForegroundColor Green))
                     {
                         Write-Host ("Saving Changes...") -ForegroundColor Yellow -NoNewline
                         $jsonContent = $jsonObject | ConvertTo-Json
@@ -928,8 +952,7 @@ class intuneWin32AppCustom {
                         Write-Host "Current Data:" -ForegroundColor Yellow
                         Write-Host (Write-Output $jsonObject.Win32App | Format-List | Out-String)
 
-                        $msgQuery = $(Write-Host "(Y/N)" -ForegroundColor Yellow -NoNewline $(Write-Host "Do you want to edit the data? " -ForegroundColor Green -NoNewLine))
-                        $queryEditAppInfo = QueryYesNo -msg $msgQuery
+                        $queryEditAppInfo = QueryYesNo -Msg "Do you want to edit the data?" -ForegroundColor Green
                         Write-Host ""
                     }
                     
@@ -1156,8 +1179,7 @@ class intuneWin32AppCustom {
 
 
 
-    [bool] PublishSoftware([string] $software, [string] $version, [string] $fileIntuneWin)
-    {
+    [bool] PublishSoftware([string] $software, [string] $version, [string] $fileIntuneWin) {
         if ($this.GetIsEnabled() -eq $false)
         {
             Write-Host "Cannot publish, itunes support is disabled!" -ForegroundColor Yellow
@@ -1183,8 +1205,8 @@ class intuneWin32AppCustom {
         # Revisa si falta algun dato requerid
         while ($this.CheckRequieredValues($Win32AppArgs) -eq $false) {
 
-            $msgQuery = $(Write-Host "(Y/N)" -ForegroundColor Yellow -NoNewline $(Write-Host "Is any of the required data missing, YES to edit the data, NO abort publication? " -ForegroundColor Green -NoNewLine))
-            $queryEditAppInfoRequierdMissing = QueryYesNo -msg $msgQuery
+            # $msgQuery = $(Write-Host "(Y/N)" -ForegroundColor Yellow -NoNewline $(Write-Host "Is any of the required data missing, YES to edit the data, NO abort publication? " -ForegroundColor Green -NoNewLine))
+            $queryEditAppInfoRequierdMissing = QueryYesNo -Msg "Is any of the required data missing, YES to edit the data, NO abort publication?" -ForegroundColor Green
             Write-Host ""
             if ($queryEditAppInfoRequierdMissing -eq $true)
             {
@@ -1418,4 +1440,396 @@ class intuneWin32AppCustom {
     }
 
 
+
+
+
+
+
+
+
+
+
+    [String] GetCurrentSO(){
+        <#
+        .SYNOPSIS
+            Devuelve el nombre del sistema operativo actual si se encuentra en una lista predefinida de sistemas operativos compatibles, incluyendo
+            Windows, macOS (OSX), Linux y FreeBSD.
+
+        .DESCRIPTION
+            El método GetCurrentSO verifica el sistema operativo actual utilizando la clase [System.Runtime.InteropServices.RuntimeInformation] y
+            compara el nombre del sistema operativo con una lista de sistemas operativos compatibles. Si el sistema operativo actual se encuentra
+            en la lista, devuelve el nombre del sistema operativo; de lo contrario, devuelve $null.
+
+        .OUTPUTS
+            [String] El método devuelve el nombre del sistema operativo actual si se encuentra en la lista de sistemas operativos compatibles. Si 
+            el sistema operativo actual no está en la lista, devuelve $null.
+        #>
+        $validOS    = @('Windows', "OSX", "Linux", "FreeBSD")
+        $dataReturn = $null
+        foreach ($nameOS in $validOS) {
+            if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::$nameOS))
+            {
+                $dataReturn = $nameOS
+                break
+            }
+        }
+        return $dataReturn
+    }
+
+    [bool] GetIsSupportSO([string[]] $supportedOSs, [bool]$showMsg) {
+       <#
+        .SYNOPSIS
+            Verifica si el sistema operativo actual está entre los sistemas operativos soportados definidos en una lista.
+
+        .DESCRIPTION
+            El método GetIsSupportSO compara el tipo de sistema operativo actual con los sistemas operativos soportados especificados
+            en el array $supportedOSs. Si el sistema operativo actual está en la lista de sistemas operativos soportados, devuelve $true;
+            de lo contrario, devuelve $false. Si $showMsg es verdadero y el sistema operativo no está soportado, muestra un mensaje de
+            advertencia.
+
+        .PARAMETER supportedOSs
+            Un array de cadenas que representa los sistemas operativos soportados. Puede contener valores como "Windows", "Linux", "OSX", o "all"
+            para indicar todos los sistemas operativos.
+
+        .PARAMETER showMsg
+            Un valor booleano que indica si se debe mostrar un mensaje de advertencia si el sistema operativo actual no está soportado. Si es 
+            $true, se mostrará el mensaje; si es $false, no se mostrará ningún mensaje.
+
+        .OUTPUTS
+            [bool] El método devuelve $true si el sistema operativo actual está soportado, de lo contrario, devuelve $false.
+        #>
+        $currentOSType     = $this.OSType.ToLower()
+        $supportedOSsLower = $supportedOSs | ForEach-Object { $_.ToLower() }
+
+        $dataReturn = ($supportedOSsLower -contains "all" -or $supportedOSsLower -contains $currentOSType)
+        if ($dataReturn -eq $false -and $showMsg)
+        {
+            Write-Host ("Current System '{0}', This System Is Not Supported Among the Defined Systems [{1}]!" -f $this.OSType,  ($supportedOSs -join ", ")) -ForegroundColor Yellow
+        }
+        return $dataReturn
+    }
+
+
+
+
+   
+
+
+    [string] GetFileIntuneWinSetupFile([string] $SetupFile) {
+        <#
+        .SYNOPSIS
+            Genera el nombre del archivo de configuración para un paquete IntuneWin.
+
+        .DESCRIPTION
+            El método GetFileIntuneWinSetupFile toma el nombre del archivo de configuración original (almacenado en $SetupFile) y 
+            genera un nuevo nombre de archivo con la extensión ".intunewin". Si el nombre del archivo de configuración está vacío
+            o nulo, el método devuelve una cadena vacía ("").
+
+        .PARAMETER $SetupFile
+            Nombre del archivo de configuración original.
+
+        .OUTPUTS
+            [String] El método devuelve una cadena que representa el nombre del archivo de configuración para el paquete IntuneWin,
+            con la extensión ".intunewin" añadida al nombre del archivo original.
+        #>
+        if ([string]::IsNullOrEmpty($SetupFile))
+        {
+            return $null
+        }
+        return "{0}.intunewin" -f [System.IO.Path]::GetFileNameWithoutExtension($SetupFile)
+    }
+
+    [string] GetPahtOutFileIntuneWinSetupFile([string] $software, [string] $SetupFile)
+    {
+        <#
+        .SYNOPSIS
+            Este método devuelve la ruta de salida completa para un archivo de configuración de paquete IntuneWin, utilizando el nombre
+            del software y el nombre del archivo de configuración original como entrada.
+
+        .DESCRIPTION
+            El método GetPahtOutFileIntuneWinSetupFile toma el nombre del software y el nombre del archivo de configuración original
+            (almacenado en $SetupFile) para construir la ruta de salida completa para un archivo de configuración de paquete IntuneWin.
+            Utiliza los métodos GetOutPath y GetFileIntuneWinSetupFile para obtener la ruta de salida y el nombre del archivo de 
+            configuración respectivamente.
+
+        .PARAMETER $software
+            Nombre del software para el cual se está generando el paquete IntuneWin.
+
+        .PARAMETER $SetupFile
+            Nombre del archivo de configuración original.
+
+        .OUTPUTS
+            [String] El método devuelve una cadena que representa la ruta de salida completa para el archivo de configuración del paquete
+            IntuneWin. Si no se puede generar returna $null.
+        #>
+        if ([string]::IsNullOrEmpty($SetupFile) -or [string]::IsNullOrEmpty($software))
+        {
+            return $null
+        }
+
+        $path           = $this.GetOutPath($software)
+        $OutputFileName = $this.GetFileIntuneWinSetupFile($SetupFile)
+        if ([string]::IsNullOrEmpty($path) -or [string]::IsNullOrEmpty($OutputFileName))
+        {
+            return $null
+        }
+
+        $path = Join-Path $path $OutputFileName
+        return $path
+    }
+
+
+    [string] GetFileIntuneWinSoftware([string] $software, [string] $version) {
+
+          if ([string]::IsNullOrEmpty($software) -or [string]::IsNullOrEmpty($version))
+        {
+            return $null
+        }
+        return ("{0}_{1}.intunewin" -f $software, $version)
+    }
+
+    [string] GetPathOutFileIntuneWinSoftware([string] $software, [string] $version)
+    {
+        <#
+        .SYNOPSIS
+            Este método devuelve la ruta de salida completa para un archivo de paquete IntuneWin, utilizando
+            el nombre del software y la versión como entrada.
+
+        .DESCRIPTION
+            El método GetPathOutFileIntuneWinSoftware toma el nombre del software y la versión como parámetros de
+            entrada y construye la ruta de salida completa para un archivo de paquete IntuneWin. Utiliza el método
+            GetOutPath para obtener la ruta de salida base y luego concatena el nombre del software, la versión y 
+            la extensión ".intunewin" para generar el nombre del archivo.
+
+        .PARAMETER $software
+            Nombre del software para el cual se está generando el paquete IntuneWin.
+
+        .PARAMETER $version
+            Versión del software para la cual se está generando el paquete IntuneWin.
+
+        .OUTPUTS
+            [String] El método devuelve una cadena que representa la ruta de salida completa para el archivo de
+            paquete IntuneWin. Si no se puede generar returna $null.
+        #>
+        if ([string]::IsNullOrEmpty($software) -or [string]::IsNullOrEmpty($version))
+        {
+            return $null
+        }
+
+        $path     = $this.GetOutPath($software)
+        $filename = $this.GetFileIntuneWinSoftware($software, $version)
+        if ([string]::IsNullOrEmpty($path) -or [string]::IsNullOrEmpty($filename))
+        {
+            return $null
+        }
+        $path = Join-Path $path $filename
+        return $path
+    }
+    
+
+
+    [bool] RenameIntuneWinSetupFile([string] $software, [string] $version, [string] $setupFile, [bool] $force)
+    {
+        if ([string]::IsNullOrEmpty($software) -or [string]::IsNullOrEmpty($version) -or [string]::IsNullOrEmpty($setupFile))
+        {
+            return $false
+        }
+        $pathSetupFile = $this.GetPahtOutFileIntuneWinSetupFile($software, $setupFile)
+        $pathSoftware  = $this.GetPathOutFileIntuneWinSoftware($software, $version)
+
+        if (-not $force -and (Test-Path -Path $pathSoftware -PathType Leaf))
+        {
+            return $false
+        }
+
+        Try
+        {
+            if (Test-Path -Path $pathSoftware -PathType Leaf)
+            {
+                Write-Host "Removing Old Version..." -ForegroundColor Green -NoNewLine
+                Remove-Item -Path $pathSoftware -Force
+                Write-Host (" [√]") -ForegroundColor Green
+            }
+            Write-Host "Renaming IntuneWin File..." -ForegroundColor Green -NoNewLine
+            Rename-Item -Path $pathSetupFile -NewName $pathSoftware
+            Write-Host (" [√]") -ForegroundColor Green
+        }
+        catch
+        {
+            Write-Host (" [X]") -ForegroundColor Red
+            Write-Host ("Error RenameIntuneWin: {0}" -f $_) -ForegroundColor Red
+            Write-Host ""
+            return $false
+        }
+        return $true
+    }
+
+
+
+
+
+    [hashtable] CreateIntuneWin32AppPackage([string] $SourceFolder, [string] $SetupFile, [string] $OutputFolder, [bool] $force, [string] $IntuneWinAppUtilPath) {
+        <#
+        .SYNOPSIS
+            Este método crea un paquete IntuneWin a partir de una carpeta de origen, un archivo de configuración y una carpeta de destino.
+            Puede sobrescribir el archivo de salida si se proporciona el parámetro `-Force`.
+
+        .DESCRIPTION
+            El método CreateIntuneWin32AppPackage valida los datos proporcionados y, si son correctos, crea un paquete IntuneWin utilizando 
+            la función New-IntuneWin32AppPackage. Verifica la existencia de la carpeta de origen, del archivo de configuración y de la carpeta
+            de destino. Si alguna de estas condiciones no se cumple, muestra mensajes de error. Si el paquete IntuneWin se crea correctamente, 
+            devuelve un hash con el estado de la operación y detalles adicionales.
+
+        .PARAMETER $SourceFolder
+            Ruta de la carpeta de origen que contiene los archivos para el paquete IntuneWin.
+
+        .PARAMETER $SetupFile
+            Nombre del archivo de configuración dentro de la carpeta de origen.
+
+        .PARAMETER $OutputFolder
+            Ruta de la carpeta de destino donde se guardará el paquete IntuneWin.
+
+        .PARAMETER $force
+            Indica si se debe sobrescribir el archivo de salida si ya existe.
+
+        .OUTPUTS
+            [System.Collections.Hashtable]
+            Devuelve un hash con las siguientes claves:
+            - 'Status'      : Indica si el proceso fue exitoso (true) o no (false).
+            - 'OutputFile'  : Ruta del archivo de salida creado.
+            - 'ErrorMsg'    : Mensaje de error, si hay algún problema durante el proceso.
+            - 'ErrorMsgType': Tipo de mensaje de error (warning, error, etc.).
+        #>
+        $errMsgType = ""
+        $errMsg     = ""
+        $processOk  = $false
+        $OutputFile = $null
+        $Win32AppPackage = $null
+
+        if (-not $this.GetIsSupportSO(@("Windows"), $true))
+        {
+            $errMsgType = "warning"
+            $errMsg     = "Current OS '{0}' Is Not Supported!" -f $this.OSType
+        }
+        else
+        {
+            # Comprobamos los datos si son correctos
+
+            $errMsg             = ""
+            $errMsgType         = "warning"
+            $errMsgColor        = "Yellow"
+            
+            $SetupFileFullPath  = $null
+            $OutputFileName     = $null
+            $OutputFileFullPath = $null
+
+            if (-not [string]::IsNullOrEmpty($SourceFolder) -and -not [string]::IsNullOrEmpty($SetupFile) )
+            {
+                $SetupFileFullPath = Join-Path -Path $SourceFolder -ChildPath $SetupFile
+            }
+            if (-not [string]::IsNullOrEmpty($SourceFolder) -and -not [string]::IsNullOrEmpty($SetupFile) )
+            {
+                $OutputFileName     = $this.GetFileIntuneWinSetupFile($SetupFile)
+                $OutputFileFullPath = Join-Path -Path $OutputFolder -ChildPath $OutputFileName
+            }
+
+            if ([string]::IsNullOrEmpty($SourceFolder))
+            {
+                $errMsg = ("Source Folder '{0}' Is Not Defined!" -f $SourceFolder)
+            }
+            elseif (-not (Test-Path -Path $SourceFolder -PathType Container))
+            {
+                $errMsg = ("Source Folder '{0}' Is Not Exist!" -f $SourceFolder)
+            }
+            elseif ([string]::IsNullOrEmpty($SetupFile))
+            {
+                $errMsg = ("Setup File '{0}' Is Not Defined!" -f $SetupFile)
+            }
+            elseif (-not (Test-Path -Path $SetupFileFullPath -PathType Leaf))
+            {
+                $errMsg = ("Setup File '{0}' Is Not Exist!" -f $SetupFile)
+            }
+            elseif ([string]::IsNullOrEmpty($OutputFolder))
+            {
+                $errMsg = ("Output Folder '{0}' Is Not Defined!" -f $SourceFolder)
+            }
+            elseif (-not (Test-Path -Path $OutputFolder -PathType Container))
+            {
+                Write-Host "Output Folder Not Exist, Creating..." -NoNewLine -ForegroundColor Green
+                try
+                {
+                    New-Item -Path $OutputFolder -ItemType Directory -Force
+                    Write-Host (" [√]") -ForegroundColor Green
+
+                    $processOk  = $true
+                    $OutputFile = $OutputFileFullPath
+                }
+                catch
+                {
+                    Write-Host (" [X]") -ForegroundColor Red
+
+                    $processOk   = $false
+                    $errMsgType  = "error"
+                    $errMsgColor = "Red"
+                    $errMsg      = ("Error Creating Directory: {0}" -f $_)
+                }
+            }
+            elseif ([string]::IsNullOrEmpty($OutputFileFullPath))
+            {
+                $errMsg = ("Output File Is Not Defined!")
+            }
+            elseif ($force -eq $false -and (Test-Path -Path $OutputFileFullPath -PathType Leaf))
+            {
+                $errMsg = ("Output File '{0}' Already Exists, Cannot be Overwritten Without Force!" -f $OutputFileName)
+            }
+            else
+            {
+                $processOk = $true
+            }
+
+            if ($processOk -eq $false) {
+                Write-Host $errMsg -ForegroundColor $errMsgColor
+                Write-Host ""
+            }
+        }
+
+        if ($processOk)
+        {
+            Write-Host "Creating intunewin..." -NoNewLine -ForegroundColor Green
+            try{
+                if ($force)
+                {
+                    $Win32AppPackage = New-IntuneWin32AppPackage -SourceFolder $SourceFolder -SetupFile $SetupFile -OutputFolder $OutputFolder -IntuneWinAppUtilPath $IntuneWinAppUtilPath -Force
+                }
+                else {
+                    $Win32AppPackage = New-IntuneWin32AppPackage -SourceFolder $SourceFolder -SetupFile $SetupFile -OutputFolder $OutputFolder -IntuneWinAppUtilPath $IntuneWinAppUtilPath
+                }
+                Write-Host (" [√]") -ForegroundColor Green
+                $processOk = $true
+            }
+            catch
+            {
+                Write-Host (" [X]") -ForegroundColor Red
+
+                $errCode     = $_.Exception.HResult
+                $errMsg      = $_.Exception.Message
+                $errLocation = $_.InvocationInfo.PositionMessage
+
+                $processOk   = $false
+                $errMsgType  = "error"
+                $errMsg      = ("Error Creating Intunewin ({0}): {1}" -f $errCode, $errMsg)
+
+                Write-Host $errMsg -ForegroundColor Red
+                Write-Host $errLocation -ForegroundColor Red
+            }
+            
+        }
+        return @{
+            'Status'          = $processOk
+            'OutputFile'      = $OutputFile
+            'Win32AppPackage' = $Win32AppPackage
+            'ErrorMsg'        = $errMsg
+            'ErrorMsgType'    = $errMsgType
+        }
+    }
 }

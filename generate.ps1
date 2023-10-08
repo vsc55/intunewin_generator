@@ -273,79 +273,186 @@ do {
 
 
 
-    Clear-Host
-    Write-Host ""
-    Write-Host " Resumen:" -ForegroundColor Yellow
-    Write-Host ("  - Software: {0}" -f $config.GetConfig('softName')) -ForegroundColor Yellow
-    Write-Host ("  - Version : {0}" -f $config.GetConfig('softVerName')) -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host ("  - Source : {0}" -f $config.GetConfig('softVerPathSrc')) -ForegroundColor Cyan
-    Write-Host ("  - Catalog: {0}" -f $config.GetConfig('softVerPathCat')) -ForegroundColor Cyan
-    Write-Host ("  - Script : {0}" -f $config.GetConfig('softCmdInstall')) -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host ("  - Salida : {0}" -f $config.GetConfig('softPathOut')) -ForegroundColor Green
-    Write-Host ""
-    ShowDebugObj -pause $false
-    pause
+    # Clear-Host
+    # Write-Host ""
+    # Write-Host " Resumen:" -ForegroundColor Yellow
+    # Write-Host ("  - Software: {0}" -f $config.GetConfig('softName')) -ForegroundColor Yellow
+    # Write-Host ("  - Version : {0}" -f $config.GetConfig('softVerName')) -ForegroundColor Yellow
+    # Write-Host ""
+    # Write-Host ("  - Source : {0}" -f $config.GetConfig('softVerPathSrc')) -ForegroundColor Cyan
+    # Write-Host ("  - Catalog: {0}" -f $config.GetConfig('softVerPathCat')) -ForegroundColor Cyan
+    # Write-Host ("  - Script : {0}" -f $config.GetConfig('softCmdInstall')) -ForegroundColor Cyan
+    # Write-Host ""
+    # Write-Host ("  - Salida : {0}" -f $config.GetConfig('softPathOut')) -ForegroundColor Green
+    # Write-Host ""
+    # ShowDebugObj -pause $false
+    # pause
 
 
 
 
-    Write-Host ""
-    Clear-Host
-    $compileIntuneWin                 = [intuneWinAppUtil]::new($config.GetConfig('intuneWinAppUtilPath'))
-    $compileIntuneWin.outPath         = $config.GetConfig('softPathOut')
-    $compileIntuneWin.sourcePath      = $config.GetConfig('softVerPathSrc')
-    $compileIntuneWin.cmdInstall      = $config.GetConfig('softCmdInstall')
-    $compileIntuneWin.softwareName    = $config.GetConfig('softName')
-    $compileIntuneWin.softwareVersion = $config.GetConfig('softVerName')
-    $compileIntuneWin.catInclude      = $true
-    $compileIntuneWin.catPath         = $config.GetConfig('softVerPathCat')
+    # Write-Host ""
+    # Clear-Host
+    # $compileIntuneWin                 = [intuneWinAppUtil]::new($config.GetConfig('intuneWinAppUtilPath'))
+    # $compileIntuneWin.outPath         = $config.GetConfig('softPathOut')
+    # $compileIntuneWin.sourcePath      = $config.GetConfig('softVerPathSrc')
+    # $compileIntuneWin.cmdInstall      = $config.GetConfig('softCmdInstall')
+    # $compileIntuneWin.softwareName    = $config.GetConfig('softName')
+    # $compileIntuneWin.softwareVersion = $config.GetConfig('softVerName')
+    # $compileIntuneWin.catInclude      = $true
+    # $compileIntuneWin.catPath         = $config.GetConfig('softVerPathCat')
 
-    $config.SetConfig("intunewinName", $compileIntuneWin.GetNameFileIntuneWin())
-    $config.SetConfig("intunewinPath", $compileIntuneWin.GetPathFileIntuneWin())
-    $config.SetConfig("intunewinNameSoftware", $compileIntuneWin.GetNameFileIntuneWinSoftware())
-    $config.SetConfig("intunewinPathSoftware", $compileIntuneWin.GetPathFileIntuneWinSoftware())
+    # $config.SetConfig("intunewinName", $compileIntuneWin.GetNameFileIntuneWin())
+    # $config.SetConfig("intunewinPath", $compileIntuneWin.GetPathFileIntuneWin())
+    # $config.SetConfig("intunewinNameSoftware", $compileIntuneWin.GetNameFileIntuneWinSoftware())
+    # $config.SetConfig("intunewinPathSoftware", $compileIntuneWin.GetPathFileIntuneWinSoftware())
 
-    $buildIntunewinFile = $true
-    if (Test-Path -Path $config.GetConfig("intunewinPathSoftware") -PathType Leaf)
-    {
-        $buildIntunewinFile = QueryYesNo -msg ("¿El archivo [{0}] ya se ha procesado queres crearlo de nuevo? (Y/N)" -f $config.GetConfig("intunewinPathSoftware"))
-        Write-Host ""
-    }
-    if ($buildIntunewinFile -eq $true)
-    {
-        if ($compileIntuneWin.CreateIntuneWinFile()) 
-        {
-            Write-Host "Proceso de compilacion completado ok." -ForegroundColor Green
-            Write-Host ""
+    # $buildIntunewinFile = $true
+    # if (Test-Path -Path $config.GetConfig("intunewinPathSoftware") -PathType Leaf)
+    # {
+    #     $buildIntunewinFile = QueryYesNo -Msg ("¿El archivo '{0}' ya se ha procesado queres crearlo de nuevo?" -f $config.GetConfig("intunewinPathSoftware")) -ForegroundColor Green
+    #     Write-Host ""
+    # }
+    # if ($buildIntunewinFile -eq $true)
+    # {
+    #     if ($compileIntuneWin.CreateIntuneWinFile()) 
+    #     {
+    #         Write-Host "Proceso de compilacion completado ok." -ForegroundColor Green
+    #         Write-Host ""
 
-            if ($compileIntuneWin.RenameIntuneWinFile())
-            {
-                Write-Host ("El archivo '{0}' se ha creado correctamente" -f $compileIntuneWin.GetNameFileIntuneWinSoftware()) -ForegroundColor Green
-                Invoke-Item -Path $config.GetConfig('softPathOut')
-            }
-        }
-        Write-Host ""
-    }
+    #         if ($compileIntuneWin.RenameIntuneWinFile())
+    #         {
+    #             Write-Host ("El archivo '{0}' se ha creado correctamente" -f $compileIntuneWin.GetNameFileIntuneWinSoftware()) -ForegroundColor Green
+    #             Invoke-Item -Path $config.GetConfig('softPathOut')
+    #         }
+    #     }
+    #     Write-Host ""
+    # }
+
+
+
+
 
 
     
+    $PathBin      = Join-Path $PSScriptRoot "Bin"
+    $PathSoftware = Join-Path $PSScriptRoot "Software"
 
-    # --- INI --- Seccion Publish App
-    if ($MSIntune.GetIsEnabled())
+    $MSIntune.SetRootPathSoftware($PathSoftware)
+
+    $softName       = $config.GetConfig('softName')
+    $softVersion    = $config.GetConfig('softVerName')
+    $softCmdInstall = $config.GetConfig('softCmdInstall')
+    $softSource     = $config.GetConfig('softVerPathSrc')
+    $softOut        = $config.GetConfig('softPathOut')
+
+    $IntuneWinFileNameSoftware    = $MSIntune.GetFileIntuneWinSoftware($softName, $softVersion)
+    $IntuneWinPathOutFileSoftware = $MSIntune.GetPathOutFileIntuneWinSoftware($softName, $softVersion)
+    $IntuneWinPathOutFileSetup    = $MSIntune.GetPahtOutFileIntuneWinSetupFile($softName, $softCmdInstall)
+
+    $IntuneWinBuildOk = $false
+
+
+
+
+    # TODO: Pendiente añadir aqui la edicion de info.json
+
+
+
+
+    # --- INIT --- Resumen de lo que se ha seleccionado
+    Clear-Host
+    Write-Host                                                                               ("╔═══════════════════════════════════════╗") -ForegroundColor Green
+    Write-Host                                                                               ("║             ┌───────────┐             ║") -ForegroundColor Green
+    Write-Host                                                                               ("╟─────────────┤  Summary  ├─────────────╢") -ForegroundColor Green
+    Write-Host                                                                               ("║             └───────────┘             ║") -ForegroundColor Green
+    Write-Host                                                                               ("╚══╦════════════════════════════════════╝") -ForegroundColor Green 
+    Write-Host                                                                               ("   ║") -ForegroundColor Green
+    Write-Host ("{0} v{1}" -f $softName, $softVersion) -ForegroundColor Yellow  $(Write-Host ("   ╚══╤══════█ ") -ForegroundColor Green -NoNewline )
+    Write-Host                                                                               ("      │") -ForegroundColor Green
+    Write-Host $softSource -ForegroundColor Cyan                                $(Write-Host ("      ├──┬───► Source    : ") -ForegroundColor Green -NoNewline )
+    Write-Host $softCmdInstall -ForegroundColor Cyan                            $(Write-Host ("      │  └───► Install   : ") -ForegroundColor Green -NoNewline )
+    Write-Host                                                                               ("      │") -ForegroundColor Green
+    Write-Host $SoftOut -ForegroundColor Cyan                                   $(Write-Host ("      └──┬───► Out       : ") -ForegroundColor Green -NoNewline )
+    Write-Host $IntuneWinFileNameSoftware -ForegroundColor Cyan                 $(Write-Host ("         └───► IntuneWin : ") -ForegroundColor Green -NoNewline )
+    Write-Host ""
+    $(Write-Host "Press enter to continue..." -ForegroundColor Green -NoNewLine); Read-Host | Out-Null
+    Write-Host ""
+    # --- END --- Resumen de lo que se ha seleccionado
+
+
+
+
+    # --- INIT --- Section Build Intunewin
+    if ([string]::IsNullOrEmpty($IntuneWinPathOutFileSoftware) -or [string]::IsNullOrEmpty($IntuneWinPathOutFileSetup))
+    {
+        Write-Host ("IntuneWin Out Files is Not Defined!") -ForegroundColor Red
+    }
+    else
+    {
+        $queryRebuildApp = $true
+        if (Test-Path -Path $IntuneWinPathOutFileSoftware -PathType Leaf)
+        {
+            $queryRebuildApp = QueryYesNo -Msg ("The IntuneWin File '{0}' Exists, Do You Want To ReBuild?" -f $IntuneWinFileNameSoftware) -ForegroundColor Green
+            Write-Host ""
+        }
+        if ($queryRebuildApp)
+        {
+            $Win32AppPackage = $MSIntune.CreateIntuneWin32AppPackage($softSource, $softCmdInstall, $softOut, $true, $config.GetConfig('intuneWinAppUtilPath'))
+            if ($Win32AppPackage.Status)
+            {
+                if ($MSIntune.RenameIntuneWinSetupFile($softName, $softVersion, $softCmdInstall, $true))
+                {
+                    $IntuneWinBuildOk = $true
+                }
+                Write-Host ""
+            }
+            if (-not $IntuneWinBuildOk)
+            {
+                Write-Host "Abort!" -ForegroundColor Red
+                Write-Host ""
+                pause
+            }
+        }
+        else
+        {
+            if (Test-Path -Path $IntuneWinPathOutFileSoftware -PathType Leaf)
+            {
+                $IntuneWinBuildOk = $true
+            }
+        }
+
+        if (Test-Path -Path $IntuneWinPathOutFileSetup -PathType Leaf)
+        {
+            Write-Host "Cleaning..." -ForegroundColor Green -NoNewLine
+            try
+            {
+                Remove-Item -Path $pathSoftware -Force
+                Write-Host (" [√]") -ForegroundColor Green
+            }
+            catch
+            {
+                Write-Host (" [X]") -ForegroundColor Red
+                Write-Host ("Error Cleaning: {0}" -f $_) -ForegroundColor Red
+                Write-Host ""
+            }            
+        }
+    }
+    # --- END --- Section Build Intunewin
+
+
+
+
+    # --- INIT --- Seccion Publish App
+    if ($IntuneWinBuildOk -and $MSIntune.GetIsEnabled())
     {
         $queryPublishApp = $false
-        # $queryPublishApp = QueryYesNo -msg "You want to Publish the App in Intune?(Y/N) -ForegroundColor Green
-
-        $queryPublishApp = QueryYesNo -msg $(Write-Host "(Y/N)" -ForegroundColor Yellow -NoNewline $(Write-Host "You want to Publish the App in Intune? " -ForegroundColor Green -NoNewLine))
+        $queryPublishApp = QueryYesNo -Msg "You want to Publish the App in Intune?" -ForegroundColor Green
         Write-Host ""
  
         if ($queryPublishApp -eq $true)
         {
-            $PathSoftware = Join-Path $PSScriptRoot "Software"
-            $MSIntune.SetRootPathSoftware($PathSoftware)
-            if ($MSIntune.PublishSoftware($config.GetConfig('softName'), $config.GetConfig('softVerName'), $config.GetConfig("intunewinPathSoftware")) -eq $false)
+            if ($MSIntune.PublishSoftware($softName, $softVersion, $IntuneWinPathOutFileSoftware) -eq $false)
             {
                 pause
             }
