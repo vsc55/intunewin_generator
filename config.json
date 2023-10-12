@@ -1,0 +1,7 @@
+{
+    "TenantID": "",
+    "SetupFileDefault": "install2.cmd",
+    "IntuneWinAppUtilExe": "IntuneWinAppUtil.exe",
+    "intuneWinAppUtilUrlDownload": "https://raw.githubusercontent.com/microsoft/Microsoft-Win32-Content-Prep-Tool/master/IntuneWinAppUtil.exe",
+    "intuneWinAppUtilUrlGitHub": "https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool"
+}

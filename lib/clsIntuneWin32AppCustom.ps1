@@ -256,9 +256,9 @@ class intuneWin32AppCustom {
             $installModuleQuery = $true
         }
 
-
+        Import-Module PowerShellGet
         if ($showMsg) {
-            Clear-Host
+            # Clear-Host
             Write-Host ("Checking Dependencies...") -ForegroundColor Yellow
         }
         foreach ($module in $this.necessaryModules) {
@@ -356,7 +356,7 @@ class intuneWin32AppCustom {
         {
             if ($showMsg)
             {
-                Write-Host ("Connecting with the Tenant...") -ForegroundColor Green -NoNewline
+                Write-Host ("Connecting with the Tenant ({0})..." -f $this.TenantID) -ForegroundColor Green -NoNewline
             }
             try
             {
@@ -1725,7 +1725,11 @@ class intuneWin32AppCustom {
 
             if (-not [string]::IsNullOrEmpty($SourceFolder) -and -not [string]::IsNullOrEmpty($SetupFile) )
             {
-                $SetupFileFullPath = Join-Path -Path $SourceFolder -ChildPath $SetupFile
+                $SetupFile = $this.GetValidSetupFile($SourceFolder, $SetupFile, @(".exe", ".com", ".bat", ".cmd", ".ps1"))
+                if (-not [string]::IsNullOrEmpty($SetupFile) )
+                {
+                    $SetupFileFullPath = Join-Path -Path $SourceFolder -ChildPath $SetupFile
+                }
             }
             if (-not [string]::IsNullOrEmpty($SourceFolder) -and -not [string]::IsNullOrEmpty($SetupFile) )
             {
@@ -1831,5 +1835,79 @@ class intuneWin32AppCustom {
             'ErrorMsg'        = $errMsg
             'ErrorMsgType'    = $errMsgType
         }
+    }
+    
+    [string] GetValidSetupFile ([string] $SourceFolder, [string]$SetupFile, [string[]]$validExtensions) {
+        
+        if ([string]::IsNullOrEmpty($SourceFolder))
+        {
+            return $null
+        }
+
+        $isChange = $false
+        if ($null -eq $validExtensions -or $validExtensions.Count -eq 0) {
+            $validExtensions = @("*")
+        }
+        $extList = $validExtensions -join ", "
+
+        $SetupFileUndo     = $SetupFile
+        $SetupFileFullPath = Join-Path $SourceFolder $SetupFile
+
+        do {
+            if (!(Test-Path -Path $SetupFileFullPath -PathType Leaf))
+            {
+                $isChange = $true
+                # Clear-Host
+                Write-Host "**********************************" -ForegroundColor Yellow
+                Write-Host "****  Script/Program Install  ****" -ForegroundColor Yellow
+                Write-Host "**********************************" -ForegroundColor Yellow
+                Write-Host ""
+                Write-Host ("File '{0}' is not found!" -f $SetupFile ) -ForegroundColor Red
+                Write-Host ""
+
+                $availableFiles = Get-ChildItem -Path $SourceFolder -File | Where-Object { $validExtensions -contains $_.Extension } | Select-Object -ExpandProperty Name
+                if ($availableFiles.Count -gt 0)
+                {
+                    Write-Host "Available Files:"
+                    foreach ($file in $availableFiles) {
+                        Write-Host "  $file" -ForegroundColor Cyan
+                    }
+                }
+                else
+                {
+                    Write-Warning ("There Are No Files With Valid Extensions: {0}" -f $extList)
+                }
+                Write-Host ""
+
+                # $SetupFile = Read-Host "enter the name of the installation file (use !! to abort)"
+                $SetupFile = $(Write-Host ("Enter The Name Of The Installation File (Use !! to Abort) ") -ForegroundColor Yellow -NoNewLine; Read-Host)
+
+                #NOTA1: Aunque en el mensaje pone !!, powerhsell solo detecta !, si pones !! en el if no funciona.
+                #NOTA2: La nota1 solo se aplica a PowerShell 5.1, en la version 7.3 el !! se detecta correctamente.
+                if ($SetupFile -eq "!" -or $SetupFile -eq "!!")
+                {
+                    Write-Warning "Aborted Process!"
+                    Write-Host ""
+                    return $null
+                }
+                if ([string]::IsNullOrEmpty($SetupFile))
+                {
+                    Write-Warning "Can't Be Left Blank!"
+                    $SetupFile = $SetupFileUndo
+                    Start-Sleep -Seconds 2
+                    Continue
+                }
+                $SetupFileUndo = $SetupFile
+                Write-Host ""
+                
+                $SetupFileFullPath = Join-Path $SourceFolder $SetupFile
+            }
+        } while (!(Test-Path -Path $SetupFileFullPath -PathType Leaf))
+
+        if ($isChange) {
+            Write-Host ("New Installer: {0}" -f $SetupFile) -ForegroundColor Green
+            Write-Host ""
+        }
+        return $SetupFile
     }
 }
