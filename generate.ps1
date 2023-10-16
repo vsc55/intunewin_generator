@@ -276,7 +276,7 @@ do {
             {
                 Write-Host "Abort!" -ForegroundColor Red
                 Write-Host ""
-                pause
+                # pause
             }
         }
         else
@@ -300,6 +300,7 @@ do {
                 Write-Host (" [X]") -ForegroundColor Red
                 Write-Host ("Error Cleaning: {0}" -f $_) -ForegroundColor Red
                 Write-Host ""
+                # pause
             }            
         }
     }
@@ -319,10 +320,14 @@ do {
         {
             if ($MSIntune.PublishSoftware($softName, $softVersion, $IntuneWinPathOutFileSoftware) -eq $false)
             {
-                pause
+                Write-Host "Error!" -ForegroundColor Red
+                Write-Host ""
+                # pause
             }
         }
     }
     # --- END --- Seccion Publica App
+
+    pause
 
 } while ($true)

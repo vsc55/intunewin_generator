@@ -11,19 +11,26 @@ function CreateDetectionFileApp {
         [string]$FileVersion   = ""
     )
 
-    $ifDetect = 'Test-Path -Path "{0}" -PathType Leaf' -f $AppPathFull
+    $FileName = "{0}_Detection_Method_{1}" -f $AppName, $DetectionType
+    $ifDetect = '(Test-Path -Path "{0}" -PathType Leaf)' -f $AppPathFull
+
     if (![string]::IsNullOrEmpty($FileVersion))
     {
-        $ifDetect += ' -and [String](Get-Item -Path "{0}").VersionInfo.FileVersion -ge "{1}"' -f $AppPathFull, $FileVersion
+        $FileName += "_{0}" -f $FileVersion
+        $ifDetect += ' -and ([String](Get-Item -Path "{0}").VersionInfo.FileVersion -ge "{1}")' -f $AppPathFull, $FileVersion
     }
+    $FileName += ".ps1"
 
-    $FileName      = "{0}_Detection_Method_{1}.ps1" -f $AppName, $DetectionType
     $FilePath      = Join-Path -Path $PSScriptRoot -ChildPath $FileName
     $scriptContent = @"
-if ($ifDetect) {
+if ($ifDetect)
+{
     Write-Host "Installed"
     Exit 0
-} else {
+}
+else
+{
+    Write-Host "No Installed"
     Exit 1
 }
 "@

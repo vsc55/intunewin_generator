@@ -109,8 +109,17 @@ class intuneWin32AppCustom {
             "defaultValue"  = [string]"W10_1607"
             "required"      = $true
         }
+        "Notes" = @{
+            "label"         = [string]"Nueva Nota"
+            "defaultValue"  = [string]""
+            "required"      = $false
+        }
+        "CategoryName" = @{
+            "label"         = [string]"Nuevo CategoryName [separacion de categorias con ','. Ej: 'Dev, DevOps']"
+            "defaultValue"  = [string]""
+            "required"      = $false
+        }
     }
-
     
 
     
@@ -760,7 +769,6 @@ class intuneWin32AppCustom {
                             $jsonObject.Win32App | Add-Member -MemberType NoteProperty -Name $propiedad -Value $defaultValue
                         }
 
-
                         do {
                             Clear-Host
                             Write-Host ("{0}:" -f $label) -ForegroundColor Green
@@ -783,6 +791,13 @@ class intuneWin32AppCustom {
                             }
                             Write-Host ("Value   ({0})" -f $value) -ForegroundColor Green
                             Write-Host ("Default ({0})" -f $defaultValue) -ForegroundColor Green
+
+                            # TODO: Pendiente hacer que esto sea dinamico y que se pueda configurar desde $this.InfoPublishSoftware
+                            if ($propiedad -eq "CategoryName")
+                            {
+                                Write-Host ("Valid Category Names: {0}" -f ((Get-IntuneWin32AppCategory -List).DisplayName -join ", ") ) -ForegroundColor Yellow
+                            }
+
                             Write-Host ""
                             $newValue = Read-Host ("New Value, !! for default value")
                             
@@ -1249,21 +1264,14 @@ class intuneWin32AppCustom {
         $Win32AppArgs['AppVersion']  = $version
         # $Win32AppArgs['DisplayName'] = "{0} {1}" -f $Win32AppArgs['DisplayName'], $Win32AppArgs['AppVersion']
 
-        if ($Win32AppArgs.ContainsKey("PrivacyURL") -and [string]::IsNullOrWhiteSpace($Win32AppArgs["PrivacyURL"]))
-        {
-            $Win32AppArgs.Remove("PrivacyURL")
-        }
-        if ($Win32AppArgs.ContainsKey("InformationURL") -and [string]::IsNullOrWhiteSpace($Win32AppArgs["InformationURL"]))
-        {
-            $Win32AppArgs.Remove("InformationURL")
-        }
-        if ($Win32AppArgs.ContainsKey("Owner") -and [string]::IsNullOrWhiteSpace($Win32AppArgs["Owner"]))
-        {
-            $Win32AppArgs.Remove("Owner")
-        }
-        if ($Win32AppArgs.ContainsKey("Developer") -and [string]::IsNullOrWhiteSpace($Win32AppArgs["Developer"]))
-        {
-            $Win32AppArgs.Remove("Developer")
+
+        # Lista de Keys a buscar que si no contienen texto hay que eliminar para evitar error al publicar.
+        $KeysCheckClean = @("PrivacyURL", "InformationURL", "Owner", "Developer", "Notes")
+
+        foreach ($key in $KeysCheckClean) {
+            if ($Win32AppArgs.ContainsKey($key) -and [string]::IsNullOrWhiteSpace($Win32AppArgs[$key])) {
+                $Win32AppArgs.Remove($key)
+            }
         }
         
         if ($Win32AppArgs.ContainsKey("CompanyPortalFeaturedApp"))
@@ -1277,8 +1285,23 @@ class intuneWin32AppCustom {
                 $Win32AppArgs["CompanyPortalFeaturedApp"] = [System.Convert]::ToBoolean($Win32AppArgs["CompanyPortalFeaturedApp"])
             }
         }
-        
 
+        if ($Win32AppArgs.ContainsKey("CategoryName"))
+        {
+            # Necesitamos convertir CategoryName en un array
+            if ($Win32AppArgs["CategoryName"] -is [string] -and -not [string]::IsNullOrWhiteSpace($Win32AppArgs["CategoryName"]))
+            {
+                $Win32AppArgs["CategoryName"] = $Win32AppArgs["CategoryName"] -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+                if ($Win32AppArgs["CategoryName"].Length -eq 0)
+                {
+                    $Win32AppArgs.Remove("CategoryName")
+                }
+            }
+            else
+            {
+                $Win32AppArgs.Remove("CategoryName")
+            }
+        }
 
 
         # Check file intunewin exist
