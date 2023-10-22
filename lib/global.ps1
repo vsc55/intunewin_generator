@@ -12,6 +12,7 @@ Import-Module .\clsConfig.ps1
 Import-Module .\clsFileDownloader.ps1
 Import-Module .\clsFileDownloaderPool.ps1
 Import-Module .\clsIntuneWinAppUtil.ps1
+Import-Module .\clsFileInfoJSON.ps1
 Import-Module .\clsIntuneWin32AppCustom.ps1
 
 

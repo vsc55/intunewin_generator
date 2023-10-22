@@ -9,9 +9,13 @@ if (($null -eq $function:CheckHack) -or (-not (CheckHack)))
     Exit 1
 }
 
+Import-Module .\clsFileInfoJSON.ps1
+
 class intuneWin32AppCustom {
 
     [string]$pathRootSoftware = ""
+
+    [fileInfoJSON]$fileInfo   = $null
 
     [string]$TenantID         = ""
     [bool]$TenantConnection   = $false
@@ -29,54 +33,66 @@ class intuneWin32AppCustom {
     [string]$NameFileInfoJSON = "info.json"
 
     [string[]]$necessaryModules        = @("MSGraph", "IntuneWin32App", "AzureAD", "PSIntuneAuth")
-    [string[]]$InfoPublishSoftwareProp = @("label", "allowedValues", "defaultValue", "required")
+    [string[]]$InfoPublishSoftwareProp = @("label", "allowedValues", "defaultValue", "required", "availableValues")
+
+    [string[]]$IntuneGenericCategory   = @(
+        "Other Apps",
+        "Books & Reference",
+        "Data Management",
+        "Productivity",
+        "Business",
+        "Development & Design",
+        "Photos & Media",
+        "Collaboration & Social",
+        "Computer Management"
+    )
 
     [Hashtable]$InfoPublishSoftware = @{
         "DisplayName" = @{
-            "label"         = [string]"Nuevo Nombre de la Aplicación"
+            "label"         = [string]"New App Display Name"
             "defaultValue"  = [string]""
             "required"      = $true
         }
         "Description" = @{
-            "label"         = [string]"Nueva descripción de la aplicación"
+            "label"         = [string]"New App Description"
             "defaultValue"  = [string]""
             "required"      = $true
         }
         "Publisher" = @{
-            "label"         = [string]"Nuevo Publicador"
+            "label"         = [string]"New Publisher"
             "defaultValue"  = [string]""
             "required"      = $true
         }
         "Developer" = @{
-            "label"         = [string]"Nuevo Desarrollador"
+            "label"         = [string]"New Developer"
             "defaultValue"  = [string]""
             "required"      = $false
         }
         "Owner" = @{
-            "label"         = [string]"Nuevo Propietario"
+            "label"         = [string]"New Owner"
             "defaultValue"  = [string]""
             "required"      = $false
         }
         "InformationURL" = @{
-            "label"         = [string]"Nueva URL de Información"
+            "label"         = [string]"New Information URL"
             "defaultValue"  = [string]""
             "allowedValues" = [string]"onlyurl"
             "required"      = $false
         }
         "PrivacyURL" = @{
-            "label"         = [string]"Nueva URL de Privacidad"
+            "label"         = [string]"New Privacy URL"
             "defaultValue"  = [string]""
             "allowedValues" = [string]"onlyurl"
             "required"      = $false
         }
         "CompanyPortalFeaturedApp" = @{
-            "label"         = [string]"¿Es una aplicación destacada en Company Portal? (true/false)"
+            "label"         = [string]"Is it a featured app on Company Portal? (true/false)"
             "allowedValues" = @("True", "False");
             "defaultValue"  = [string]"False"
             "required"      = $false
         }
         "InstallExperience" = @{
-            "label"         = [string]"Experiencia de Instalación (system/user)"
+            "label"         = [string]"Installation Experience (system/user)"
             "allowedValues" = @("system", "user");
             "defaultValue"  = [string]"system"
             "required"      = $true
@@ -88,39 +104,48 @@ class intuneWin32AppCustom {
             "required"      = $true
         }
         "InstallCommandLine" = @{
-            "label"         = [string]"Nuevo Comando Instalacion"
+            "label"         = [string]"New Install Command"
             "defaultValue"  = [string]"install.cmd"
             "required"      = $true
         }
         "UninstallCommandLine" = @{
-            "label"         = [string]"Nuevo Comando Desinstalacion"
+            "label"         = [string]"New Uninstall Command"
             "defaultValue"  = [string]"uninstall.cmd"
             "required"      = $true
         }
         "Architecture" = @{
-            "label"         = [string]"Nuevo Arquitectura soportada"
+            "label"         = [string]"New Supported Architecture"
             "allowedValues" = @("x86", "x64", "All");
             "defaultValue"  = [string]"All"
             "required"      = $true
         }
         "MinimumSupportedWindowsRelease" = @{
-            "label"         = [string]"Nuevo Version Minima de Windows soportada"
+            "label"         = [string]"New Minimum Version of Windows Supported"
             "allowedValues" = @("W10_1607", "W10_1703", "W10_1709", "W10_1803", "W10_1809", "W10_1903", "W10_1909", "W10_2004", "W10_20H2", "W10_21H1", "W10_21H2", "W10_22H2", "W11_21H2", "W11_22H2");
             "defaultValue"  = [string]"W10_1607"
             "required"      = $true
         }
         "Notes" = @{
-            "label"         = [string]"Nueva Nota"
+            "label"         = [string]"New Note"
             "defaultValue"  = [string]""
             "required"      = $false
         }
         "CategoryName" = @{
-            "label"         = [string]"Nuevo CategoryName [separacion de categorias con ','. Ej: 'Dev, DevOps']"
-            "defaultValue"  = [string]""
-            "required"      = $false
+            "label"           = [string]"New CategoryName [for multiple categories separated with ','. Ex: 'Dev, DevOps']"
+            "defaultValue"    = [string]""
+            "required"        = $false
+            "availableValues" = $this.CallBackAvailableValues("CategoryName")
         }
     }
     
+    [hashtable]$InfoDefault = @{
+        "Options"   = @{
+            "Type" = "Win32App"
+        }
+        "Remplaces" = @{}
+        "Win32App"  = @{}
+        "MSI"       = @{}
+    }
 
     
     intuneWin32AppCustom([string] $NewTenantID = "") {
@@ -145,6 +170,8 @@ class intuneWin32AppCustom {
         $this.SetTenantID($NewTenantID)
         $this.SetEnabled($true)
         $this.SetRootPathSoftware("")
+
+        $this.fileInfo = [fileInfoJSON]::new()
     }
 
 
@@ -594,7 +621,142 @@ class intuneWin32AppCustom {
         return -not [string]::IsNullOrEmpty($softPathInfo) -and (Test-Path -Path $softPathInfo -PathType Leaf)
     }
 
-    [bool] SetDefaultConfigFileInfoSoftwarePubic([string] $software, [string] $version) {
+
+
+    [ScriptBlock] CallBackAvailableValues([string] $option) {
+        <#
+        .SYNOPSIS
+            Este script block define una función de retorno de llamada (callback) para obtener los valores disponibles basados en la opción proporcionada.
+
+        .DESCRIPTION
+            Esta función de retorno de llamada (callback) devuelve un script block que obtiene valores disponibles para la opción "CategoryName" o devuelve $null para otras opciones.
+
+        .PARAMETER $option
+            La opción que determina qué valores disponibles se deben obtener.
+
+        .OUTPUTS
+            [ScriptBlock] Codigo que se tiene que ejecutar al llamar al callback
+
+        .EXAMPLE
+            # Set Callback
+            $this.callback = $this.CallBackAvailableValues("CategoryName")
+
+            # Use Callbak
+            $inupt_value = $this.callback.Invoke($this)
+        #>
+        switch ($option) {
+            "CategoryName" {
+
+                return {
+                    param(
+                        [intuneWin32AppCustom] $msintune = $null
+                    )
+        
+                    $dataReturn = $null
+                    if ($null -eq $msintune)
+                    {
+                        # TODO: Mensaje de error
+                    }
+                    else
+                    {
+                        if ($msintune.GetIsEnabled())
+                        {
+                            $dataReturn = (Get-IntuneWin32AppCategory -List).DisplayName
+                        }
+                        else
+                        {
+                            $dataReturn = $msintune.IntuneGenericCategory
+                            # Write-Warning ("Connection to Intune Is Disabled, We Can't Get Categories Names, Intune Generics Will Be Shown!")
+                        }
+                    }
+                    return $dataReturn
+                }
+            }
+
+            default {
+                return {
+                    return $null
+                }
+            }
+        }
+
+        return {
+            return $null
+        }
+    }
+
+    [ScriptBlock]SetDefaultParse() {
+        <#
+        .SYNOPSIS
+            Este script block define una función de configuración predeterminada para una aplicación Win32 basada en los valores proporcionados.
+
+        .DESCRIPTION
+            Esta función toma varios parámetros, incluyendo un objeto FileInfoJSON, un hashtable de valores predeterminados, un hashtable
+            de propiedades y una cadena de texto que representa el software. 
+            La función verifica si los parámetros son válidos y, si lo son, configura los valores predeterminados del hashtable según las
+            propiedades especificadas.
+
+        .PARAMETER $config
+            Objeto FileInfoJSON que representa la configuración del archivo.
+
+        .PARAMETER $default
+            Hashtable que contiene los valores predeterminados.
+
+        .PARAMETER $props
+            Hashtable que contiene las propiedades de los valores predeterminados.
+
+        .PARAMETER $software
+            Cadena de texto que representa el nombre del software.
+
+        .OUTPUTS
+            [bool] Devuelve $true si la configuración predeterminada se realiza correctamente; de lo contrario, devuelve $false.
+
+        .EXAMPLE
+            # Set Callback
+            $this.fileInfo.callback_SetDefault = $this.SetDefaultParse()
+            $this.fileInfo.SetDefault($this.InfoDefault, $this.InfoPublishSoftware, $software, $force)
+
+            # Use Callbak
+            if ($null -ne $this.callback_SetDefault)
+            {
+                $this.callback_SetDefault.Invoke($this, $jsonDefault, $props, $software)
+            }
+        #>
+        return {
+            param(
+                [fileInfoJSON] $config = $null,
+                [hashtable] $default   = @{},
+                [hashtable] $props     = @{},
+                [string] $software     = $null
+            )
+
+            if ($null -eq $config -or [string]::IsNullOrEmpty($software))
+            {
+                return $false
+            }
+
+            foreach ($prop in $props.Keys)
+            {
+                switch -regex ($prop) {
+                    "(?i)DisplayName" {
+                        $default['Win32App'][$prop] = $software
+                    }
+                    "(?i)Description" {
+                        $default['Win32App'][$prop] = $software
+                    }
+                    "(?i)Publisher" {
+                        $default['Win32App'][$prop] = $software
+                    }
+                    default {
+                        $default['Win32App'][$prop] = $props[$prop]["defaultValue"]
+                    }
+                }
+            }
+            return $true
+        }
+    }
+
+    [bool] SetDefaultConfigFileInfoSoftwarePubic([string] $software, [string] $version, [bool] $force) {
         <#
         .SYNOPSIS
             Establece la configuración predeterminada para el archivo "info.json" del software 
@@ -608,7 +770,10 @@ class intuneWin32AppCustom {
             Nombre del software.
 
         .PARAMETER $version
-            Número de versión del software (opcional).
+            Número de versión del software.
+
+        .PARAMETER $force
+            Fuerza la sobreescitura del archivo si existe.
 
         .OUTPUTS
             [bool] Verdadero si se establece la configuración predeterminada con éxito, falso de lo contrario.
@@ -621,57 +786,10 @@ class intuneWin32AppCustom {
         else
         {
             $softPathInfo = $this.GetPathFileInfoSoftwarePublish($software, $version)
-            if ([string]::IsNullOrEmpty($softPathInfo))
-            {
-                Write-Host ("SetDefaultConfigFileInfoSoftwarePubic: File path is null!") -ForegroundColor Red
-            }
-            else
-            {
-                Write-Host ("File '{0}' does not exist, creating..." -f $softPathInfo) -ForegroundColor Yellow -NoNewline
-                $jsonDefault = @{
-                    "Options"   = @{
-                        "Type" = "Win32App"
-                    }
-                    "Remplaces" = @{}
-                    "Win32App"  = @{}
-                    "MSI"       = @{}
-                }
-                foreach ($prop in $this.InfoPublishSoftware.Keys)
-                {
-                    switch -regex ($prop) {
-                        "(?i)DisplayName" {
-                            $jsonDefault['Win32App'][$prop] = $software
-                        }
-                        "(?i)Description" {
-                            $jsonDefault['Win32App'][$prop] = $software
-                        }
-                        "(?i)Publisher" {
-                            $jsonDefault['Win32App'][$prop] = $software
-                        }
-                        default {
-                            $jsonDefault['Win32App'][$prop] = $this.InfoPublishSoftware[$prop]["defaultValue"]
-                        }
-                    }
-                    Write-Host (".") -ForegroundColor Yellow -NoNewline
-                }
-                Try
-                {
-                    $jsonDefaultString = $jsonDefault | ConvertTo-Json
-                    $jsonDefaultString | Set-Content -Path $softPathInfo
-                    Write-Host (" [√]") -ForegroundColor Green
-                    $dataReturn = $true
-                }
-                catch
-                {
-                    $dataReturn  = $false
-                    $errCode     = $_.Exception.HResult
-                    $errMsg      = $_.Exception.Message
-                    $errLocation = $_.InvocationInfo.PositionMessage
-                    Write-Host (" [X]") -ForegroundColor Red
-                    Write-Host ("Code Error '{0}' - Error: {1} {2}" -f $errCode, $errMsg, $errLocation) -ForegroundColor Red
-                }
-                Write-Host ""
-            }
+
+            $this.fileInfo.SetFile($softPathInfo)
+            $this.fileInfo.callback_SetDefault = $this.SetDefaultParse()
+            $this.fileInfo.SetDefault($this.InfoDefault, $this.InfoPublishSoftware, $software, $force)
         }
         return $dataReturn
     }
@@ -733,6 +851,9 @@ class intuneWin32AppCustom {
         .OUTPUTS
             [bool] Verdadero si la edición se realizó correctamente, falso si ocurrió un error.
         #>
+
+        # TODO: Pendiente migrar a la funciona de editar de FileInfoJOSN
+
         $dataReturn = $false
         if (-not [string]::IsNullOrWhiteSpace($softPathInfo))
         {
@@ -743,16 +864,27 @@ class intuneWin32AppCustom {
                     
                 do {
                     foreach ($propiedad in $this.InfoPublishSoftware.Keys) {
-                        $label         = $propiedad
-                        $value         = ""
-                        $allowedValues = $null
-                        $defaultValue  = ""
-                        $required      = $false
+                        $label           = $propiedad
+                        $value           = ""
+                        $allowedValues   = $null
+                        $defaultValue    = ""
+                        $required        = $false
+                        $availableValues = $null
 
-                        foreach ($input_prop in $this.InfoPublishSoftwareProp) {
+                        foreach ($input_prop in $this.InfoPublishSoftwareProp)
+                        {
                             if ($this.InfoPublishSoftware[$propiedad].ContainsKey($input_prop))
                             {
-                                Set-Variable -Name $input_prop -Value $this.InfoPublishSoftware[$propiedad][$input_prop]   
+                                $inupt_value = $this.InfoPublishSoftware[$propiedad][$input_prop]
+
+                                if ($inupt_value -is [ScriptBlock])
+                                {
+                                    if ($null -ne $inupt_value)
+                                    {
+                                        $inupt_value = $inupt_value.Invoke($this)
+                                    }
+                                }
+                                Set-Variable -Name $input_prop -Value $inupt_value
                             }
                         }
 
@@ -792,10 +924,13 @@ class intuneWin32AppCustom {
                             Write-Host ("Value   ({0})" -f $value) -ForegroundColor Green
                             Write-Host ("Default ({0})" -f $defaultValue) -ForegroundColor Green
 
-                            # TODO: Pendiente hacer que esto sea dinamico y que se pueda configurar desde $this.InfoPublishSoftware
-                            if ($propiedad -eq "CategoryName")
+                            if ($null -ne $availableValues)
                             {
-                                Write-Host ("Valid Category Names: {0}" -f ((Get-IntuneWin32AppCategory -List).DisplayName -join ", ") ) -ForegroundColor Yellow
+                                if (-not $this.GetIsEnabled())
+                                {
+                                    Write-Warning ("Connection to Intune Is Disabled, We Can't Get The Available Values, The Generic Ones Will Be Displayed!!")
+                                }
+                                Write-Host ("Available: {0}" -f ($availableValues -join ", ") ) -ForegroundColor Green
                             }
 
                             Write-Host ""
@@ -880,7 +1015,7 @@ class intuneWin32AppCustom {
         return $dataReturn
     }
 
-    [hashtable] ReadFileInfoSoftwarePubic([string] $software, [string] $version, [bool] $forzeEdit) {
+    [hashtable] ReadFileInfoSoftwarePubic([string] $software, [string] $version, [bool] $queryEdit, [bool] $forzeEdit) {
         <#
         .SYNOPSIS
             Lee la configuración del software desde un archivo JSON.
@@ -941,7 +1076,7 @@ class intuneWin32AppCustom {
                 {
                     if (-not (Test-Path -Path $softPathInfo -PathType Leaf))
                     {
-                        $this.SetDefaultConfigFileInfoSoftwarePubic($software, "")
+                        $this.SetDefaultConfigFileInfoSoftwarePubic($software, "", $true)
                         $newInfoJSON = $true
                     }
                 }
@@ -957,27 +1092,30 @@ class intuneWin32AppCustom {
                     $Win32AppMSI       = @{}
 
 
-                    # Cargamos la configuracion de info.json para ver si tenemos que editarla
-                    $jsonContent = Get-Content -Path $softPathInfo | Out-String
-                    $jsonObject = $jsonContent | ConvertFrom-Json
-
-                    if ($newInfoJSON -eq $false -and $forzeEdit -eq $false)
+                    if ($queryEdit)
                     {
-                        Clear-Host
-                        Write-Host "Current Data:" -ForegroundColor Yellow
-                        Write-Host (Write-Output $jsonObject.Win32App | Format-List | Out-String)
+                        # Cargamos la configuracion de info.json para ver si tenemos que editarla
+                        $jsonContent = Get-Content -Path $softPathInfo | Out-String
+                        $jsonObject = $jsonContent | ConvertFrom-Json
 
-                        $queryEditAppInfo = QueryYesNo -Msg "Do you want to edit the data?" -ForegroundColor Green
-                        Write-Host ""
-                    }
+                        if ($newInfoJSON -eq $false -and $forzeEdit -eq $false)
+                        {
+                            Clear-Host
+                            Write-Host ""
+                            Write-Host "Current Data:" -ForegroundColor Yellow
+                            Write-Host (Write-Output $jsonObject.Win32App | Format-List | Out-String)
+
+                            $queryEditAppInfo = QueryYesNo -Msg "Do you want to edit the data?" -ForegroundColor Green
+                            Write-Host ""
+                        }
                     
-                    if ($queryEditAppInfo -eq $true -or $newInfoJSON -eq $true -or $forzeEdit -eq $true)
-                    {
-                        $this.EditFileInfoSoftwarePublish($softPathInfo)
+                        if ($queryEditAppInfo -eq $true -or $newInfoJSON -eq $true -or $forzeEdit -eq $true)
+                        {
+                            $this.EditFileInfoSoftwarePublish($softPathInfo)
+                        }
+                        $jsonContent = $null
+                        $jsonObject  = $null
                     }
-                    $jsonContent = $null
-                    $jsonObject  = $null
-    
 
 
                     # Cargamos la configuracion de info.json
@@ -1202,7 +1340,7 @@ class intuneWin32AppCustom {
             return $false
         }
 
-        $configRead = $this.ReadFileInfoSoftwarePubic($software, $version, $false)
+        $configRead = $this.ReadFileInfoSoftwarePubic($software, $version, $false, $false)
         if ($configRead['status'] -eq $false)
         {
             Write-Host ("Aborted Process, error ({0}) : {1}" -f $configRead['error']['code'], $configRead['error']['msg']) -ForegroundColor Red
@@ -1218,14 +1356,13 @@ class intuneWin32AppCustom {
 
 
         # Revisa si falta algun dato requerid
-        while ($this.CheckRequieredValues($Win32AppArgs) -eq $false) {
-
-            # $msgQuery = $(Write-Host "(Y/N)" -ForegroundColor Yellow -NoNewline $(Write-Host "Is any of the required data missing, YES to edit the data, NO abort publication? " -ForegroundColor Green -NoNewLine))
+        while ($this.CheckRequieredValues($Win32AppArgs) -eq $false)
+        {
             $queryEditAppInfoRequierdMissing = QueryYesNo -Msg "Is any of the required data missing, YES to edit the data, NO abort publication?" -ForegroundColor Green
             Write-Host ""
             if ($queryEditAppInfoRequierdMissing -eq $true)
             {
-                $configRead = $this.ReadFileInfoSoftwarePubic($software, $version, $true)
+                $configRead = $this.ReadFileInfoSoftwarePubic($software, $version, $true, $true)
                 if ($configRead['status'] -eq $true)
                 {
                     $Win32AppOptions   = $configRead['Options']

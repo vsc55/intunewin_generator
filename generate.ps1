@@ -136,7 +136,7 @@ Start-Sleep -Seconds 2
 # **** INIT - Descargar IntuneWinAppUtil ****
 $downloader = [FileDownloader]::new()
 $downloader.DownloadFile($config.GetConfig("intuneWinAppUtilUrlDownload"), $config.GetConfig('intuneWinAppUtilPath'), $config.GetConfig("IntuneWinAppUtilExe"), $false) | Out-Null
-$downloader.showMsg   = $true
+$downloader.showMsg   = $false
 $downloader.overWrite = $false
 $downloadResult = $downloader.StartDownload()
 if (-not $downloadResult)
@@ -204,10 +204,22 @@ do {
     ShowDebugObj
 
 
-
     $SetupFile  = $config.GetConfig("SetupFileDefault")
     $softSource = $PathSoftwareVersionsSrc
     $softOut    = $PathSoftwareOut
+
+
+
+    # --- INIT --- Lee la Configuracion del software y la crea si es necesario.
+    $configRead = $MSIntune.ReadFileInfoSoftwarePubic($softName, $softVersion, $true, $false)
+    if ($configRead['status'] -eq $false)
+    {
+        Write-Host ("General: Aborted Process, error ({0}) : {1}" -f $configRead['error']['code'], $configRead['error']['msg']) -ForegroundColor Red
+        Write-Host ""
+        pause
+        continue
+    }
+    # --- END --- Lee la Configuracion del software
 
 
 
@@ -216,12 +228,6 @@ do {
     $IntuneWinPathOutFileSetup    = $MSIntune.GetPahtOutFileIntuneWinSetupFile($softName, $SetupFile)
 
     $IntuneWinBuildOk = $false
-
-
-
-
-    # TODO: Pendiente añadir aqui la edicion de info.json
-
 
 
 
