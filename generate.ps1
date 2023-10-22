@@ -32,6 +32,9 @@ function ShowDebugObj {
     }
 }
 
+$Host.UI.RawUI.BackgroundColor = "Black"
+Clear-Host
+
 Write-Host ""
 Write-Host ("{0} {1} by Javier Pastor (VSC55)" -f $PSScripotName, $PSScripotVersion) -ForegroundColor Green
 Write-Host ("Run in PowerShell {0} in {1}" -f $PSVersionTable.PSVersion.ToString(), $PSVersionTable.OS) -ForegroundColor Green
@@ -278,11 +281,19 @@ do {
                 }
                 Write-Host ""
             }
+            elseif($Win32AppPackage.SupportSO -eq $false)
+            {
+                # Status es False pero no es por error, es porque el SO no es compatible.
+                # Si el archivos intinewin existe damos el build como ok.
+                if (Test-Path -Path $IntuneWinPathOutFileSoftware -PathType Leaf)
+                {
+                    $IntuneWinBuildOk = $true
+                }
+            }
             if (-not $IntuneWinBuildOk)
             {
-                Write-Host "Abort!" -ForegroundColor Red
+                Write-Host ("Abort ({0}): {1}" -f $Win32AppPackage.ErrorMsgType, $Win32AppPackage.ErrorMsg) -ForegroundColor Red
                 Write-Host ""
-                # pause
             }
         }
         else
@@ -306,7 +317,6 @@ do {
                 Write-Host (" [X]") -ForegroundColor Red
                 Write-Host ("Error Cleaning: {0}" -f $_) -ForegroundColor Red
                 Write-Host ""
-                # pause
             }            
         }
     }
@@ -328,12 +338,12 @@ do {
             {
                 Write-Host "Error!" -ForegroundColor Red
                 Write-Host ""
-                # pause
             }
         }
     }
     # --- END --- Seccion Publica App
 
-    pause
+    # pause
+    Write-Host "Press Enter To Continue... " -ForegroundColor White -NoNewLine; Read-Host
 
 } while ($true)

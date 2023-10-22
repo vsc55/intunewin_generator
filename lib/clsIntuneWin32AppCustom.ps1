@@ -1859,10 +1859,12 @@ class intuneWin32AppCustom {
             - 'OutputFile'  : Ruta del archivo de salida creado.
             - 'ErrorMsg'    : Mensaje de error, si hay algún problema durante el proceso.
             - 'ErrorMsgType': Tipo de mensaje de error (warning, error, etc.).
+            - 'SupportSO'   : True si el sistema es compatible y False si no lo es
         #>
         $errMsgType = ""
         $errMsg     = ""
         $processOk  = $false
+        $supportSO  = $true
         $OutputFile = $null
         $Win32AppPackage = $null
 
@@ -1870,6 +1872,7 @@ class intuneWin32AppCustom {
         {
             $errMsgType = "warning"
             $errMsg     = "Current OS '{0}' Is Not Supported!" -f $this.OSType
+            $supportSO  = $false
         }
         else
         {
@@ -1994,6 +1997,7 @@ class intuneWin32AppCustom {
             'Win32AppPackage' = $Win32AppPackage
             'ErrorMsg'        = $errMsg
             'ErrorMsgType'    = $errMsgType
+            'SupportSO'       = $supportSO
         }
     }
     
