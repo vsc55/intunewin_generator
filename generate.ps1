@@ -207,11 +207,6 @@ do {
     ShowDebugObj
 
 
-    $SetupFile  = $config.GetConfig("SetupFileDefault")
-    $softSource = $PathSoftwareVersionsSrc
-    $softOut    = $PathSoftwareOut
-
-
 
     # --- INIT --- Lee la Configuracion del software y la crea si es necesario.
     $configRead = $MSIntune.ReadFileInfoSoftwarePubic($softName, $softVersion, $true, $false)
@@ -225,6 +220,11 @@ do {
     # --- END --- Lee la Configuracion del software
 
 
+
+    # $SetupFile  = $config.GetConfig("SetupFileDefault")
+    $SetupFile  = $configRead.Win32App.InstallCommandLine
+    $softSource = $PathSoftwareVersionsSrc
+    $softOut    = $PathSoftwareOut
 
     $IntuneWinFileNameSoftware    = $MSIntune.GetFileIntuneWinSoftware($softName, $softVersion)
     $IntuneWinPathOutFileSoftware = $MSIntune.GetPathOutFileIntuneWinSoftware($softName, $softVersion)
