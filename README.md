@@ -25,3 +25,26 @@ El **Generador de Paquetes IntuneWin** es una aplicación que automatiza el proc
 
 
 Con el **Generador de Paquetes IntuneWin**, las organizaciones pueden mantener su ecosistema de aplicaciones de forma organizada y actualizada en Microsoft Intune, garantizando un flujo de trabajo eficiente y una experiencia del usuario final sin problemas.
+
+---
+
+# Algunas Capturas de Pantalla
+
+**Seleccionar App**
+![Select App](./Docs/Step1.png)
+
+**Seleccionar Versión**
+![Select Version](./Docs/Step2.png)
+
+**Editar Datos de la App**
+![Edit Config](./Docs/Step3.png)
+
+**Crear IntuneWin y Subirlo a Intune**
+![Create IntuneWin and Upload](./Docs/Step4.png)
+
+**Actualizar IntuneWin y actualizar paquete en Intune**
+![ReBuild and Update](./Docs/Step5.png)
+
+**6. App en Intune**
+![Intune](./Docs/Intune1.png)
+![Intune Propierties](./Docs/Intune2.png)
