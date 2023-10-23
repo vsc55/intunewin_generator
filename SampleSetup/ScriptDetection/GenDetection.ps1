@@ -17,7 +17,7 @@ function CreateDetectionFileApp {
     if (![string]::IsNullOrEmpty($FileVersion))
     {
         $FileName += "_{0}" -f $FileVersion
-        $ifDetect += ' -and ([String](Get-Item -Path "{0}").VersionInfo.FileVersion -ge "{1}")' -f $AppPathFull, $FileVersion
+        $ifDetect += ' -and ([String](Get-Item -Path "{0}").VersionInfo.FileVersion -eq "{1}")' -f $AppPathFull, $FileVersion
     }
     $FileName += ".ps1"
 
