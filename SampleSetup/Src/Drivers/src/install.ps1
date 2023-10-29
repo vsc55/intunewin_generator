@@ -2,26 +2,25 @@
 #
 # Changelog:
 # ----------
-#   07/08/2023 - Creacion Script. (Javier Pastor)
+#   04/08/2023 - Creacion Script. (Javier Pastor)
 #   22/08/2023 - Add Suport Multiple Files INF. (Javier Pastor)
+#   29/10/2023 - Move config to file info.json. (Javier Pastor)
 
 # Intune Cmd:
-# Powershell.exe -NoProfile -ExecutionPolicy ByPass -File .\uninstall.ps1
+# Powershell.exe -NoProfile -ExecutionPolicy ByPass -File .\install.ps1
 #
-# Ejemplo pnputil.exe:
-# "C:\Windows\sysnative\pnputil.exe" /delete-driver "C3422WE.inf" /uninstall >> "C:\Windows\Temp\DELL_C3422WE_log.txt"
+# Sample pnputil.exe:
+# "C:\Windows\System32\pnputil.exe" /add-driver "C3422WE.inf" /install >> "C:\Windows\Temp\DELL_C3422WE_log.txt"
 #
 
-$script_name ="RICOH_IMC3000A_UnInstall"
+$LogFileNameGlobal = "log_driver_global.log"
+$LogFileName       = "log_driver_{0}_Install.log"
 
-$files_INF = @(
-    "oemsetup.inf",
-    "RPRNUT.inf"
-)
+$ScriptDirectory   = $PSScriptRoot
 
-$file_log  = "log_driver_{0}.txt" -f $script_name
-$LogFilePath = Join-Path $env:TEMP $file_log
-Start-Transcript -Path $LogFilePath -Append
+$LogFilePathGlobal = Join-Path -Path $env:TEMP -ChildPath $LogFileNameGlobal
+Start-Transcript -Path $LogFilePathGlobal -Append
+
 
 If ($ENV:PROCESSOR_ARCHITEW6432 -eq "AMD64") {
     Try {
@@ -55,19 +54,54 @@ function Write-ProcessOutput {
     }
 }
 
+
+# Init Vars
+$scriptName = "driversGen"
+$infFiles   = @()
+
+
+# Guarda el valor actual de $ErrorActionPreference
+$origlErrorActionPreference = $ErrorActionPreference
+
+# Establece $ErrorActionPreference en "Stop" para que los errores sean terminantes
+# Tenemos que usar esto para que Get-Content entre en el catch si el archivo no existe o se produce otro error.
+$ErrorActionPreference = "Stop"
+
+try {
+    $jsonFilePath = Join-Path -Path $ScriptDirectory -ChildPath "info.json"
+    $data = Get-Content -Path $jsonFilePath -Raw | ConvertFrom-Json
+
+    $scriptName = $data.name
+    $infFiles   = $data.files
+}
+catch
+{
+    Write-Host ("Error read JSON: {0}" -f $_) -ForegroundColor Red
+    Exit 1
+}
+finally {
+    # Restaura el valor original de $ErrorActionPreference
+    $ErrorActionPreference = $origlErrorActionPreference
+}
+
+Stop-Transcript
+
+$LogFileName = $LogFileName -f $scriptName
+$LogFilePath = Join-Path -Path $env:TEMP -ChildPath $LogFileName
+Start-Transcript -Path $LogFilePath -Append
+
+
+
 $errCode = 0
 $errMsg  = ""
 
-$ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
-
-foreach ($fileINF in $files_INF) {
+foreach ($fileINF in $infFiles)
+{
     try
     {
-        $processArgs = "/delete-driver `"{0}`" /uninstall" -f (Join-Path $ScriptDirectory $fileINF)
-
         $psi = New-Object System.Diagnostics.ProcessStartInfo
         $psi.FileName               = (Get-Command "pnputil.exe").Source
-        $psi.Arguments              = $processArgs
+        $psi.Arguments              = "/add-driver `"{0}`" /install" -f (Join-Path -Path $ScriptDirectory -ChildPath $fileINF)
         $psi.RedirectStandardOutput = $true
         $psi.RedirectStandardError  = $true
         $psi.UseShellExecute        = $false
@@ -90,6 +124,10 @@ foreach ($fileINF in $files_INF) {
 
         $errCode = $process.ExitCode
         $errMsg  = $process.StandardError
+
+        # $ProcessInfo = Start-Process -FilePath $pnputilPath -ArgumentList $processArgs -WindowStyle Hidden -RedirectStandardOutput $LogFilePath -Wait -PassThru
+        # $errCode = $ProcessInfo.ExitCode
+        # $errMsg  = $ProcessInfo.StandardError
     }
     catch
     {  
@@ -100,12 +138,12 @@ foreach ($fileINF in $files_INF) {
 
     if ($errCode -eq 0 -or $errCode -eq 259 -or $errCode -eq 3010)
     {
-        Write-Host ("UnInstall OK ({0})" -f $errCode)
+        Write-Host ("Install OK ({0})" -f $errCode)
         $errCode = 0
     }
     else
     {
-        Write-Host ("UnInstall Error ({0}): {1}" -f $errCode, $errMsg)
+        Write-Host ("Install Error ({0}): {1}" -f $errCode, $errMsg)
         break
     }
 }

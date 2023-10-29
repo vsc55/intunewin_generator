@@ -30,7 +30,6 @@ if ($ifDetect)
 }
 else
 {
-    Write-Host "No Installed"
     Exit 1
 }
 "@

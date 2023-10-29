@@ -1,0 +1,7 @@
+{
+    "name": "RICOH_IMC3000A",
+    "files": [
+        "oemsetup.inf",
+        "RPRNUT.inf"
+    ]
+}
