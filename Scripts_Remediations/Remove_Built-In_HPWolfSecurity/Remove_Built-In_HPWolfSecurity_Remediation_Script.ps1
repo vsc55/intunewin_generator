@@ -1,16 +1,20 @@
-﻿$script_name ="Remove_HPWolf"
+﻿$script_name = "Remove_HPWolf"
+$AppName     = "*HP Wolf*"
 
-$file_log  = "log_remediation_{0}.txt" -f $script_name
+
+$errCode     = 0
+$file_log    = "log_remediation_{0}.log" -f $script_name
 $LogFilePath = Join-Path $env:TEMP $file_log
 Start-Transcript -Path $LogFilePath -Append
 
-$AppName           = "*HP Wolf*"
-$InstalledPrograms = Get-Package | Where-Object  { $_.Name -like $AppName }
 
+# Debug
 Write-Host ""
 Get-Package | Where-Object  { $_.Name -like $AppName }
 Write-Host ""
 
+
+$InstalledPrograms = Get-Package | Where-Object  { $_.Name -like $AppName }
 $InstalledPrograms | ForEach-Object {
     Write-Host -Object "Attempting to uninstall: [$($_.Name)]..."
     Try {
@@ -19,8 +23,10 @@ $InstalledPrograms | ForEach-Object {
     }
     Catch {
         $errCode = $_.Exception.HResult
-        Write-Warning -Message "Failed to uninstall ($errCode): [$($_.Name)]"
+        $errMsg  = $_.Exception.Message
+        Write-Warning -Message ("Failed to uninstall ({0}) [{1}]: {2}" -f $errCode, $($_.Name) , $errMsg)
     }
 }
 
 Stop-Transcript
+Exit $errCode

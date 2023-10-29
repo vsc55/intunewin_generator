@@ -1,6 +1,6 @@
 ﻿$AppName   = "*HPSupportAssistant"
-$CountApps = (Get-AppxPackage -AllUsers | Where-Object { $_.Name -like $AppName }).Count
 
+$CountApps = (Get-AppxPackage -AllUsers | Where-Object { $_.Name -like $AppName }).Count
 if ($CountApps -eq '0')
 {
     Write-Host "Software not Installed"
