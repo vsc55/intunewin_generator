@@ -325,7 +325,7 @@ class intuneWin32AppCustom {
                     Write-Host ("Installing Module '{0}'..." -f $module) -ForegroundColor Yellow  -NoNewline
                 }
                 try {
-                    Install-Module -Name $module -Scope CurrentUser  -AcceptLicense -Force -ErrorAction Stop
+                    Install-Module -Name $module -Scope CurrentUser -Force -ErrorAction Stop
                 }
                 catch
                 {
@@ -1454,24 +1454,24 @@ class intuneWin32AppCustom {
         
 
 
-        $isPublishSoftware = $this.CheckIfPublishSoftware($software, $Win32AppArgs['AppVersion'])
+        $isPublishSoftware = $this.CheckIfPublishSoftware($Win32AppArgs['DisplayName'], $Win32AppArgs['AppVersion'])
         if ($null -eq $isPublishSoftware)
         {
             return $false
         }
         elseif ($isPublishSoftware -eq $true)
         {
-            $Win32AppInfo = Get-IntuneWin32App -DisplayName $software | Where-Object { $_.displayVersion -eq $Win32AppArgs['AppVersion'] }
+            $Win32AppInfo = Get-IntuneWin32App -DisplayName $Win32AppArgs['DisplayName'] | Where-Object { $_.displayVersion -eq $Win32AppArgs['AppVersion'] }
 
             if ($Win32AppInfo.PSObject.Properties.Match('Count').Count -gt 0)
             {
                 Write-Host ("This version of the app has been found repeated {0} times. Take a look!" -f $Win32AppInfo.Count) -ForegroundColor Red
                 Write-Host ""
-                Get-IntuneWin32App -DisplayName $software | Where-Object { $_.displayVersion -eq $Win32AppArgs['AppVersion'] } | Select-Object -Property displayName, displayVersion, id, createdDateTime | Sort-Object -Property createdDateTime
+                Get-IntuneWin32App -DisplayName $Win32AppArgs['DisplayName'] | Where-Object { $_.displayVersion -eq $Win32AppArgs['AppVersion'] } | Select-Object -Property displayName, displayVersion, id, createdDateTime | Sort-Object -Property createdDateTime
             }
             elseif ($Win32AppInfo.PSObject.Properties.Match('id').Count -gt 0)
             {
-                Write-Host ("Updating PackageFile App [{0} {1}]..." -f $software, $Win32AppArgs['AppVersion']) -ForegroundColor Green
+                Write-Host ("Updating PackageFile App [{0} {1}]..." -f $Win32AppArgs['DisplayName'], $Win32AppArgs['AppVersion']) -ForegroundColor Green
                 Update-IntuneWin32AppPackageFile -ID $Win32AppInfo.id -FilePath $Win32AppArgs['FilePath']
                 Write-Host ("Complete Update!") -ForegroundColor Green
                 Write-Host ""

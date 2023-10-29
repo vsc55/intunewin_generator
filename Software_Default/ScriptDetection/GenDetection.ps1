@@ -11,7 +11,7 @@ function CreateDetectionFileApp {
         [string]$FileVersion   = ""
     )
 
-    $ifDetect = 'Test-Path -Path "{0}" -PathType Leaf' -f $AppPathFull
+    $ifDetect = '(Test-Path -Path "{0}" -PathType Leaf)' -f $AppPathFull
     if (![string]::IsNullOrEmpty($FileVersion))
     {
         $ifDetect += ' -and [String](Get-Item -Path "{0}").VersionInfo.FileVersion -eq "{1}"' -f $AppPathFull, $FileVersion

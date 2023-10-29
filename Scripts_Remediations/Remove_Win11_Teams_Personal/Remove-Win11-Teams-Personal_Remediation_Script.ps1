@@ -1,12 +1,21 @@
 ﻿$script_name ="Remove_MicrosftTeamsPersoal"
 
-$file_log  = "log_remediation_{0}.txt" -f $script_name
+$file_log  = "log_remediation_{0}.log" -f $script_name
 $LogFilePath = Join-Path $env:TEMP $file_log
 Start-Transcript -Path $LogFilePath -Append
 
-$AppName           = "*MicrosoftTeams*"
+
+$TaskName          = "msteams.exe"
+$AppName           = "MicrosoftTeams"
+
+
+#Kill Teams Personal EXE if running
+TASKKILL /IM $TaskName /f
+
+#Remove it
 $InstalledPrograms = Get-AppxPackage -AllUsers | Where-Object  { $_.Name -like $AppName }
 
+#Debug App Info
 Get-AppxPackage -AllUsers | Where-Object  { $_.Name -like $AppName } | Format-Table -Property Name, Version
 
 $InstalledPrograms | ForEach-Object {
@@ -22,3 +31,4 @@ $InstalledPrograms | ForEach-Object {
 }
 
 Stop-Transcript
+Exit 0

@@ -1,0 +1,9 @@
+{
+    "appName": ".NetFrameWork3.5",
+    "appInstallPath": "dism.exe",
+    "appInstallArgs": "/online /Enable-Feature /FeatureName:NetFx3 /All",
+    "appInstallRemovePost": [],
+    "appUninstallPath": "dism.exe",
+    "appUninstallArgs": "/online /Disable-Feature /FeatureName:NetFx3",
+    "appUninstallRemovePost": []
+}

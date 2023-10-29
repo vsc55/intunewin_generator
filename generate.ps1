@@ -217,6 +217,8 @@ do {
         pause
         continue
     }
+    $softDisplayName       = $configRead['Win32App']['DisplayName']
+    $softDisplayNameAndVer = ("{0} v{1}" -f $softDisplayName, $softVersion)
     # --- END --- Lee la Configuracion del software
 
 
@@ -236,19 +238,19 @@ do {
 
     # --- INIT --- Resumen de lo que se ha seleccionado
     Clear-Host
-    Write-Host                                                                               ("╔═══════════════════════════════════════╗") -ForegroundColor Green
-    Write-Host                                                                               ("║             ┌───────────┐             ║") -ForegroundColor Green
-    Write-Host                                                                               ("╟─────────────┤  Summary  ├─────────────╢") -ForegroundColor Green
-    Write-Host                                                                               ("║             └───────────┘             ║") -ForegroundColor Green
-    Write-Host                                                                               ("╚══╦════════════════════════════════════╝") -ForegroundColor Green 
-    Write-Host                                                                               ("   ║") -ForegroundColor Green
-    Write-Host ("{0} v{1}" -f $softName, $softVersion) -ForegroundColor Yellow  $(Write-Host ("   ╚══╤══════█ ") -ForegroundColor Green -NoNewline )
-    Write-Host                                                                               ("      │") -ForegroundColor Green
-    Write-Host $softSource -ForegroundColor Cyan                                $(Write-Host ("      ├──┬───► Source    : ") -ForegroundColor Green -NoNewline )
-    Write-Host $SetupFile -ForegroundColor Cyan                                 $(Write-Host ("      │  └───► Install   : ") -ForegroundColor Green -NoNewline )
-    Write-Host                                                                               ("      │") -ForegroundColor Green
-    Write-Host $SoftOut -ForegroundColor Cyan                                   $(Write-Host ("      └──┬───► Out       : ") -ForegroundColor Green -NoNewline )
-    Write-Host $IntuneWinFileNameSoftware -ForegroundColor Cyan                 $(Write-Host ("         └───► IntuneWin : ") -ForegroundColor Green -NoNewline )
+    Write-Host                                                                   ("╔═══════════════════════════════════════╗") -ForegroundColor Green
+    Write-Host                                                                   ("║             ┌───────────┐             ║") -ForegroundColor Green
+    Write-Host                                                                   ("╟─────────────┤  Summary  ├─────────────╢") -ForegroundColor Green
+    Write-Host                                                                   ("║             └───────────┘             ║") -ForegroundColor Green
+    Write-Host                                                                   ("╚══╦════════════════════════════════════╝") -ForegroundColor Green 
+    Write-Host                                                                   ("   ║") -ForegroundColor Green
+    Write-Host $softDisplayNameAndVer -ForegroundColor Yellow       $(Write-Host ("   ╚══╤══════█ ") -ForegroundColor Green -NoNewline )
+    Write-Host                                                                   ("      │") -ForegroundColor Green
+    Write-Host $softSource -ForegroundColor Cyan                    $(Write-Host ("      ├──┬───► Source    : ") -ForegroundColor Green -NoNewline )
+    Write-Host $SetupFile -ForegroundColor Cyan                     $(Write-Host ("      │  └───► Install   : ") -ForegroundColor Green -NoNewline )
+    Write-Host                                                                   ("      │") -ForegroundColor Green
+    Write-Host $SoftOut -ForegroundColor Cyan                       $(Write-Host ("      └──┬───► Out       : ") -ForegroundColor Green -NoNewline )
+    Write-Host $IntuneWinFileNameSoftware -ForegroundColor Cyan     $(Write-Host ("         └───► IntuneWin : ") -ForegroundColor Green -NoNewline )
     Write-Host ""
     $(Write-Host "Press enter to continue..." -ForegroundColor Green -NoNewLine); Read-Host | Out-Null
     Write-Host ""
