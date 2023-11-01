@@ -1,5 +1,8 @@
-﻿# Changelog:
+﻿# Version 1.0
+#
+# Changelog:
 # ----------
+#   Ver 1.0
 #   14/09/2023 - Creacion Script. (Javier Pastor)
 
 

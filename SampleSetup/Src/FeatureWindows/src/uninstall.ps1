@@ -1,28 +1,9 @@
-﻿# Version: 1.4
+﻿# Version: 1.0
 #
 # Changelog:
 # ----------
 #   Ver 1.0
-#   07/08/2023 - Creacion Script. (Javier Pastor)
-#
-#   Ver 1.1
-#   16/08/2023 - Implementar Start-Transcript, parametrizar ajustes y crear 
-#                archivo config.json. (Javier Pastor)
-#
-#   Ver 1.2
-#   30/08/2023 - Añadir template scriptPathRoot (Javier Pastor)
-#
-#   Ver 1.3
-#   09/09/2023 - Modificar la forma de ejecutar el programa. Ahora hacemos 
-#                RedirectStandardOutput y RedirectStandardError para que todo 
-#                se registre en el log con Start-Transcript. (Javier Pastor)
-#
-#   Ver 1.4
-#   30/09/2023 - Añadir "appUninstallRemovePost" a config.json para poder definir 
-#                que archivos o carpetas deseamos eliminar despues de la desinstalacion
-#                correcta del programa. (Javier Pastor)
-#              - Añadir {{userPublic}} y {{userRoaming}} a las plantillas. (Javier Pastor)
-#              - Añadir funciona Write-ProcessOutput. (Javier Pastor)
+#   07/08/2023 - Base Version Software 1.4
 #
 # Intune Cmd:
 #   Powershell.exe -NoProfile -ExecutionPolicy ByPass -File .\uninstall.ps1
@@ -31,23 +12,14 @@
 # CONFIG: Las opciones están definidas en $propertyMappings con su valor por defecto.
 #           << Ejemplo de "config.json" >>
 #           {
-#               "appName": "openshot",
-#               "appUninstallPath": "{{ProgramFiles}}\\OpenShot Video Editor\\unins000.exe",
-#               "appUninstallArgs": "/VERYSILENT /NORESTART"
-#               "appUninstallRemovePost": [
-#                   "{{userRoaming}}\\OpenShot"
-#               ]
+#               "appName": ".NetFrameWork3.5",
+#               "appUninstallPath": "dism.exe",
+#               "appUninstallArgs": "/online /Disable-Feature /FeatureName:NetFx3",
+#               "appUninstallRemovePost": []
 #           }
-#
 #
 # NOTA: Si el script se ejecuta en un cmd o powershell de 32 bits (SysWOWO64), este
 #       se relanzará en modo 64 bits.
-#
-#
-# FILE LOG: Durante el proceso de lectura de ajustes del archivo "config.json",
-#           el LOG se guarda en la ruta "%TEMP%\log_intune_global.txt". Una vez
-#           ya cargados los ajustes se usara el archivo definido en "config.json"
-#           o en su valor por defecto "%temp%\{{appName}}_process.txt".
 #
 
 
